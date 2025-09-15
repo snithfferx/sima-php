@@ -4,7 +4,7 @@
  * @description This class is used to initialize and configure the engine to render the views
  * @category Library
  * @author Jorge Echeverria <jecheverria@bytes4run.com>
- * @package LIBRARIES\ViewEngine
+ * @package SIMA\LIBRARIES\ViewEngine
  * @version 1.0.0
  * @date 2024-03-06 - 2025-04-03
  * @time 11:00:00

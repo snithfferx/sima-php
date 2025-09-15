@@ -4,7 +4,7 @@
  * @description Helper to build classes
  * @author Jorge Echeverria <jecheverria@bytes4run.com> 
  * @category Library
- * @package Kernel\libraries\ClassBuilder
+ * @package SIMA\LIBRARIES\ClassBuilder
  * @version 1.0.0 rev.1 
  * @date 2024-04-16
  * @time 16:37:00
