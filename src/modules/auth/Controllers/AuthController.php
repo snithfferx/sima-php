@@ -20,6 +20,7 @@ use Throwable;
 # Classes
 use SIMA\MODULES\Auth\models\AuthModel;
 use SIMA\HANDLERS\JWTHandler;
+use SIMA\MIDDLEWARES\LoginAttemptMiddleware;
 class AuthController extends Controller {
 	private AuthModel $model;
     public function __construct(int $id = null) {
@@ -31,21 +32,26 @@ class AuthController extends Controller {
      */
     public function login($params): array
     {
+        LoginAttemptMiddleware::handle();
+
         $user = $this->model->findByEmail($params['email']);
         if (!$user || !password_verify($params['password'], $user['password'])) {
+            LoginAttemptMiddleware::recordFailedLogin();
             return ['status' => 401, 'message' => 'Credenciales inválidas'];
         }
 
-    $token = JWTHandler::generate([
-        'id' => $user['id'],
-        'role' => $user['role'],
-        'email' => $user['email']
-    ]);
+        LoginAttemptMiddleware::clearLoginAttempts();
 
-    JWTHandler::storeToken($token);
+        $token = JWTHandler::generate([
+            'id' => $user['id'],
+            'role' => $user['role'],
+            'email' => $user['email']
+        ]);
 
-    return ['status' => 200, 'message' => 'Login exitoso', 'token' => $token];
-}
+        JWTHandler::storeToken($token);
+
+        return ['status' => 200, 'message' => 'Login exitoso', 'token' => $token];
+    }
 public function register($params)
     {
         if (empty($params['email']) || empty($params['password'])) {
