@@ -4,7 +4,7 @@
  * @description This class is used to handle the request
  * @category Handler
  * @author Jorge Echeverria <jecheverria@bytes4run.com>
- * @package App
+ * @package SIMA\HANDLERS
  * @license Bytes4Run 2025
  * @version 1.0.1
  * @link https://bytes4run.com
@@ -44,8 +44,34 @@ class Request
     {
         return $_SERVER['HTTP_HOST'];
     }
+
     public static function getHeaders()
     {
         return getallheaders();
     }
+
+	public static function getHttpAccept()
+	{
+		return $_SERVER['HTTP_ACCEPT'];
+	}
+
+	public static function getHttpAcceptLanguage()
+	{
+		return $_SERVER['HTTP_ACCEPT_LANGUAGE'];
+	}
+
+	public static function getContentType()
+	{
+		return $_SERVER['CONTENT_TYPE'];
+	}
+
+	public static function getContentLength()
+	{
+		return $_SERVER['CONTENT_LENGTH'];
+	}
+
+	public static function getRequestTime()
+	{
+		return $_SERVER['REQUEST_TIME'];
+	}
 }
