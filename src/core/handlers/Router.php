@@ -4,7 +4,7 @@
  * @description This class is used to handle the router
  * @category Handler
  * @author Jorge Echeverria <jecheverria@bytes4run.com>
- * @package App
+ * @package SIMA\HANDLERS
  * @license Bytes4Run 2025
  * @version 1.0.1
  * @link https://bytes4run.com
