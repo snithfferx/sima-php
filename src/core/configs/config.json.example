@@ -1,0 +1,38 @@
+{
+    "author_name":"APP_NAME",
+	"author_email":"APP_NAME",
+    "author_company":"COMPANY",
+    "author_company_url":"http:\/\/www.example.com\/",
+    "app_start_year":"2022",
+    "app_enviroment":"dev",
+    "app_default_ctr":"home",
+    "app_url":"http:\/\/localhost\/",
+    "app_version":"0.0.0",
+    "app_short_version":"0.0",
+    "app_language":"es",
+    "app_logo":"app_logo.png",
+    "app_logo_mini":"app_logo_mini.png",
+    "app_title_color":"#FFFFFF",
+    "app_theme_color":"#FFFFFF",
+    "app_background_color":"#333333",
+    "app_view":{
+        "engine":"smarty",
+        "theme":"adminlte"
+    },
+    "app_colab":[
+        {
+            "theme":[
+                {
+                    "url":"https:\/\/www.adminlte.io\/",
+                    "name":"AdminLTE"
+                }
+            ],
+            "technology":[
+                {
+                "url":"https:\/\/www.smarty.net\/",
+                    "name":"SMARTY 3.0"
+                }
+            ]
+        }
+    ]
+}

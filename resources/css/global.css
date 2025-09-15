@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@source '../views/**/*.tpl';
+@source '../cache/smarty/compiles/*.php';
+@source '../**/*.css';
+@source '../**/*.ts';

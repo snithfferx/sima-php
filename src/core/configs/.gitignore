@@ -1,0 +1,5 @@
+*
+!.gitignore
+!.env.example
+!config.json.example
+!Error.json
