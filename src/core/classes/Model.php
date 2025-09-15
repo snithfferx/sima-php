@@ -105,6 +105,16 @@ class Model
         return $this;
     }
 
+	/**
+	 * @param string $tableName
+	 * @return Model
+	 */
+	public function into(string $tableName)
+	{
+		$this->tableName = $tableName;
+		return $this;
+	}
+
     /**
      * Recieve the field name to order by
      * @param string $order
