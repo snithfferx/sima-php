@@ -85,7 +85,7 @@ Make sure you have a .env file in your "_configs/_" application directory, if yo
 ├── resources/
 │   └── views/
 │       └── _engine_/
-│           └── theme/
+│           └── _theme_/
 │               ├── _module_/
 │               ├── templates/
 │               └── layouts/
