@@ -4,7 +4,7 @@
  * @description This class is used to handle the configs
  * @category Helper
  * @author Jorge Echeverria <jecheverria@bytes4run.com>
- * @package HELPERS\Configs
+ * @package SIMA\HELPERS\Configs
  * @license Bytes4Run 2025
  * @version 1.0.1
  * @link https://bytes4run.com

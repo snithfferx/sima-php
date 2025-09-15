@@ -4,7 +4,7 @@
  * @description This class is used to handle the cors
  * @category Helper
  * @author snithfferx <jecheverria@bytes4run.com>
- * @package HELPERS\Cors
+ * @package SIMA\HELPERS\Cors
  * @license Bytes4Run 2025
  * @version 1.0.1
  * @link https://bytes4run.com

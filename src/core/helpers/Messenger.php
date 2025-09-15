@@ -4,7 +4,7 @@
  * @description This class is used to prepare and send messages to the user
  * @category Class
  * @author Jorge Echeverria <jecheverria@bytes4run.com>
- * @package HELPERS\Messenger
+ * @package SIMA\HELPERS\Messenger
  * @version 1.0.0
  * @date 2024-03-06
  * @time 15:00:00
@@ -15,6 +15,7 @@ namespace SIMA\HELPERS;
 
 class Messenger
 {
+    private static $messages = [];
     public function __construct()
     {
         // Constructor
@@ -29,7 +30,7 @@ class Messenger
             default => $this->buildAMessage($data),
         };
     }
-    public function json(array $data): array
+    public static function json(array $data): string
     {
         $type = "error";
         if ($data['status'] === 200) {
@@ -39,11 +40,11 @@ class Messenger
         } elseif ($data['status'] < 500) {
             $type = "warning";
         }
-        return $this->build($type, $data);
+        return json_encode(self::build($type, $data));
     }
-    public function message(string $type = 'info', string | array $data = '')
+    public static function message(string $type = 'info', string | array $data = '')
     {
-        return $this->build($type, $data);
+        return self::build($type, $data);
     }
     private function buildInfoMessage(string | array $data)
     {
