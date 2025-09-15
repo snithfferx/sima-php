@@ -1,26 +1,25 @@
 <?php
 /** 
  * {component_name}
- * @description {component_name} class for manage {component_name}
+ * @description {component_classname} class for manage {component_name}
  * @author {author_name} <{author_email}>
  * @category {component_type}
- * @package Modules\{component_name}\{component_type_lower}s\{component_name}
+ * @package SIMA\MODULES\{component_name}\{component_type_lower}s\{component_classname}
  * @version 1.0.0
  * @date {component_date}
  * @time {component_time}
- * @copyright (c) {component_year} author_company 
+ * @copyright (c) {component_year} {author_company}
  */
 # Strict types
 declare(strict_types=1);
 # Namespace
 namespace SIMA\MODULES\{component_name_lower}\{component_type_lower}s;
 # Base
-use SIMA\{component_type}\{component_class_name};
+use SIMA\CLASSES\{component_type_class};
 use Throwable;
 # Classes
-use SIMA\CLASSES\{component_type_class};
 {component_model}
-class {component_name} extends {component_class_name} {
+class {component_classname} extends {component_type_class} {
     {component_content}
 }
 ?>

@@ -38,12 +38,12 @@ class Definer
 
         ##GLOBAL MODULE Core Variable
         if (!defined("_MODULE_")) {
-            define("_MODULE_", dirname(_APP_) . "/modules/");
+            define("_MODULE_", _APP_ . "/modules/");
         }
 
         ##GLOBAL VIEW Variable
         if (!defined("_VIEW_")) {
-            define("_VIEW_", _APP_ . "/resources/views/");
+            define("_VIEW_", dirname(_APP_) . "/resources/views/");
         }
         ##GLOBAL CONFIGURATION Variable
         if (!defined("_CONF_")) {

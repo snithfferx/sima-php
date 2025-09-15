@@ -18,11 +18,12 @@ use SIMA\HELPERS\Configs;
 
 class ClassBuilder
 {
-
+	private array | null $app_env;
     public function __construct()
     {
         new Definer;
-		new Configs;
+		$configs = new Configs;
+		$this->app_env = $configs->get('config','json');
     }
 
     /**
@@ -68,122 +69,30 @@ class ClassBuilder
      */
     private function buildModel(string $name, string|null $options, string|null $location): bool|string
     {
-		/* $component = [
-			'date_time'=>[
-				'year' =>date('Y'),
-				'month' =>date('m'),
-				'day' =>date('d'),
-				'date' =>date('Y-m-d'),
-        		'time' => date('H:i:s')
-			],
-        	'name' => [
-				'value'=>ucfirst(strtolower($name)),
-				'lower' => strtolower($name)
-			],
-			'type' => [
-				'value'=>strtoupper($type),
-				'lower' => strtolower($type),
-				'class'=>ucfirst(strtolower($type))
-			],
-			'author'=> [
-				'name'=>$_ENV['AUTHOR_NAME'],
-				'email'=> $_ENV['AUTHOR_EMAIL']
-			],
-			'content'=>''
-		]; */
         $nameUC = ucfirst($name);
         $model_base = $this->getBase($name,'Model');
+		$content = '';
         if ($options == '-c' || $options == '--components') {
 			$model_template = file_get_contents(__DIR__ . "/_build/templates/_model_components.tp");
             // ob_start();
             // include "_build/templates/_model_components.tp";
             // $model_components = ob_get_clean();
-            $content = str_replace('{name}', $nameUC, $model_template);
-			$fields = [
-				'{component_name}',
-				'{component_name_lower}',
-				'{author_name}',
-				'{author_email}',
-				'{component_type}',
-				'{component_type_lower}',
-				'{component_type_class}',
-				'{component_date}',
-				'{component_time}',
-				'{component_year}'
-			];
-			$values = [
-				$model_base['name']['value'],
-				$model_base['name']['lower'],
-				$model_base['author']['name'],
-				$model_base['author']['email'],
-				$model_base['type']['value'],
-				$model_base['type']['lower'],
-				$model_base['type']['class'],
-				$model_base['date_time']['date'],
-				$model_base['date_time']['time'],
-				$model_base['date_time']['year']
-			];
-			$content = str_replace('{content}', '', $content);
-            $model = str_replace($fields, $values, $model_base['base']);
+			$content = str_replace('{name}', $nameUC, $model_template);
         } else {
-            $content = "    public function __construct(int \$id = null) {\n";
+            $content = "    private array | null \$error;\nprivate array | null \$response;\n";
+			$content .= "    public function __construct() {\n";
             $content .= "        parent::__construct();\n";
-            $content .= "        \$this->table = \"$name\";\n";
-            $content .= "        \$this->_setTable(\$this->table);\n";
-            $content .= "        \$this->error = null;\n";
-            $content .= "        if (!is_null(\$id) && \$id > 0) {\n";
-            $content .= "            \$this->_init_Model(\$id);\n";
-            $content .= "        }\n";
             $content .= "    }\n";
-            // Getters and Setters
-            $content .= "   /** \n";
-            $content .= "    * Function to get any value property from the Model\n";
-            $content .= "    * \n";
-            $content .= "    * @param string \$prop\n";
-            $content .= "    * @param return mixed\n";
-            $content .= "    */\n";
-            $content .= "   public function __get(string \$name):mixed {\n";
-            $content .= "       \$result = null;\n";
-            $content .= "       if (property_exists(\$this, \$name)) {\n";
-            $content .= "           if (in_array(\$name, ['id'])) {\n";
-            $content .= "               \$result = intval(\$this->\$name);}\n";
-            $content .= "           } else {\n";
-            $content .= "               \$result = \$this->\$name;\n";
-            $content .= "           }\n";
-            $content .= "       }\n";
-            $content .= "       return \$result;\n";
-            $content .= "   }\n";
-            $content .= "   /** \n";
-            $content .= "    * Function to set any value property from the Model\n";
-            $content .= "    * \n";
-            $content .= "    * @param string \$name\n";
-            $content .= "    * @param mixed \$value\n";
-            $content .= "    * @return void\n";
-            $content .= "    * @throws \Exception\n";
-            $content .= "    */\n";
-            $content .= "   public function __set(string \$name, \$value): void {\n";
-            $content .= "       if (property_exists(\$this, \$name)) {\n";
-            $content .= "           if (\$name == 'created_at' || \$name == 'updated_at') {\n";
-            $content .= "               if (!is_null(\$value) && !empty(\$value)) {\n";
-            $content .= "                   \$this->\$name = new DateTime(\$value);\n";
-            $content .= "               } else {\n";
-            $content .= "                   \$this->\$name = new DateTime();\n";
-            $content .= "               }\n";
-            $content .= "           } else {\n";
-            $content .= "               \$this->\$name = \$value;\n";
-            $content .= "           }\n";
-            $content .= "       }\n";
-            $content .= "   }\n";
             // Get error and set error
-            $content .= "   /** \n";
-            $content .= "    * Function to set any error occurring on the Model\n";
-            $content .= "    * \n";
-            $content .= "    * @param array \$error\n";
-            $content .= "    * @return void\n";
-            $content .= "    */\n";
-            $content .= "   private function __setError(array \$error): void {\n";
+            $content .= "    /** \n";
+            $content .= "     * Function to set any error occurring on the Model\n";
+            $content .= "     * \n";
+            $content .= "     * @param array \$error\n";
+            $content .= "     * @return void\n";
+            $content .= "     */\n";
+            $content .= "    private function __setError(array \$error): void {\n";
             $content .= "       if (!is_null(\$this->error) && !empty(\$this->error)) {\n";
-            $content .= "           self::\$error = \$error;\n";
+            $content .= "           self::\$error = array_merge(self::\$error, \$error);\n";
             $content .= "       } else {\n";
             $content .= "           self::\$error = \$error;\n";
             $content .= "       }\n";
@@ -197,38 +106,70 @@ class ClassBuilder
             $content .= "   public static function getError (): ?array {\n";
             $content .= "       return self::\$error;\n";
             $content .= "   }\n";
-            $model = str_replace('{content}', $content, $model_base['base']);
+            // Get response and set response
+            $content .= "   /** \n";
+            $content .= "    * Function to set any response occurring on the Model\n";
+            $content .= "    * \n";
+            $content .= "    * @param array \$response\n";
+            $content .= "    * @return void\n";
+            $content .= "    */\n";
+            $content .= "    private function __setResponse(array \$response): void {\n";
+            $content .= "       if (!is_null(\$this->response) && !empty(\$this->response)) {\n";
+            $content .= "           self::\$response = array_merge(self::\$response, \$response);\n";
+            $content .= "       } else {\n";
+            $content .= "           self::\$response = \$response;\n";
+            $content .= "       }\n";
+            $content .= "    }\n";
+            $content .= "    /** \n";
+            $content .= "     * Function to get the response from the Model\n";
+            $content .= "     * \n";
+            $content .= "     * @return null|array\n";
+            $content .= "     * @throws \Exception\n";
+            $content .= "     */\n";
+            $content .= "    public function getResponse (): ?array {\n";
+            $content .= "       return \$this->response;\n";
+            $content .= "    }\n";
         }
-        $filePath = (!is_null($location)) ? _MODULE_ . "$location/Models/" : _MODULE_ . "$name/Models/";
-        $fileName = $name . "Model.php";
+		$content = str_replace('{component_content}', $content, $model_base['base']);
+		$content = str_replace('{component_model}', 'use SIMA\\ENTITIES\\' . $nameUC . ';', $content);
+        $filePath = (!is_null($location)) ? _MODULE_ . "$location/models/" : _MODULE_ . "$name/models/";
+        $fileName = $nameUC . "Model.php";
         if (file_exists($filePath . $fileName) && $options != '-f' && $options != '--force') {
-            return "The Model $name already exists\n";
+            return "The Model $nameUC already exists\n";
         } else {
             if (!file_exists($filePath)) {
                 mkdir($filePath, 0777, true);
             }
-            file_put_contents($filePath . $fileName, $model);
-            return "The Model $name has been created\n";
+            file_put_contents($filePath . $fileName, $content);
+            return "The Model $nameUC has been created\n";
         }
     }
-    private function buildController(string $name, string $options = null, string $location = null): string
+    private function buildController(string $name, string|null $options = null, string|null $location = null): string
     {
-        $name = ucfirst($name);
-        $controller_basic = $this->getbase($name,'Controller');
+        $nameUC = ucfirst($name);
+        $controller_basic = $this->getBase($name,'Controller');
+		$content = "";
         if ($options == '-c' || $options == '--components') {
             ob_start();
-            include "_build/templates/_controller_components.php";
+            include "_build/templates/_controller_components.tp";
             $controller_components = ob_get_clean();
-            $content = str_replace('{name}', $name, $controller_components);
-            $controller = str_replace('{content}', $content, $controller_basic);
+            $content = str_replace('{name}', $nameUC, $controller_components);
         } else {
             // Constructor
-            $content = "    public function __construct(int \$id = null) {\n";
-            $content .= "        \$this->model = new $name" . "Model;\n";
+            $content = "    private " . $nameUC . "Model \$model;\n";
+            $content .= "    public function __construct(int \$id = null) {\n";
+            $content .= "        \$this->model = new " . $nameUC . "Model;\n";
             $content .= "    }\n";
             // CRUD
-            $controller = str_replace('{content}', $content, $controller_basic);
+			$content .= "    public function index() {\n";
+			$content .= "        \$this->model->getAll();\n";
+			$content .= "    }\n";
+			$content .= "    public function show(int \$id) {\n";
+			$content .= "        \$this->model->get(\$id);\n";
+			$content .= "    }\n";
         }
+		$content = str_replace('{component_content}', $content, $controller_basic['base']);
+		$content = str_replace('{component_model}', 'use SIMA\\MODULES\\' . $nameUC . '\\models\\' . $nameUC . 'Model;', $content);
         $filePath = (!is_null($location)) ? _MODULE_ . "$location/Controllers/" : _MODULE_ . "$name/Controllers/";
         $fileName = $name . "Controller.php";
         if (file_exists($filePath) && $options != '-f' && $options != '--force') {
@@ -237,11 +178,11 @@ class ClassBuilder
             if (!file_exists($filePath)) {
                 mkdir($filePath, 0777, true);
             }
-            file_put_contents($filePath . $fileName, $controller);
-            return "The Controller $name has been created\n";
+            file_put_contents($filePath . $fileName, $content);
+            return "The Controller $nameUC has been created\n";
         }
     }
-    private function buildClass(string $name, string $options = null, string $location = null): string
+    private function buildClass(string $name, string|null $options = null, string|null $location = null): string
     {
         $name = ucfirst($name);
         $class = '';
@@ -275,46 +216,42 @@ class ClassBuilder
      */
     public function getBase(string $name, string $type): array
     {
-        $component = [
-			'date_time'=>[
-				'year' =>date('Y'),
-				'month' =>date('m'),
-				'day' =>date('d'),
-				'date' =>date('Y-m-d'),
-        		'time' => date('H:i:s')
-			],
-        	'name' => [
-				'value'=>ucfirst(strtolower($name)),
-				'lower' => strtolower($name)
-			],
-			'type' => [
-				'value'=>strtoupper($type),
-				'lower' => strtolower($type),
-				'class'=>ucfirst(strtolower($type))
-			],
-			'author'=> [
-				'name'=>$_ENV['AUTHOR_NAME'],
-				'email'=> $_ENV['AUTHOR_EMAIL']
-			],
-			'content'=>''
+		$nameUC = ucfirst($name);
+		$typeUC = ucfirst($type);
+		$className = $nameUC.$typeUC;
+		$fields = [
+				'{component_name}',
+				'{component_name_lower}',
+				'{component_classname}',
+				'{author_name}',
+				'{author_email}',
+				'{component_type}',
+				'{component_type_lower}',
+				'{component_type_class}',
+				'{component_date}',
+				'{component_time}',
+				'{component_year}',
+				'{author_company}'
 		];
-        $class = 'Controller';
-        if (!is_null($type) || !empty($type)) {
-            if ($type == 'model') {
-                $class = 'Model';
-            } elseif ($type == 'controller') {
-                $class = 'Controller';
-            } elseif ($type == 'helper') {
-                $class = 'Helper';
-            } elseif ($type == 'handler') {
-                $class = 'Handler';
-            }
-        }
-		$component['type']['class'] = $class;
+		$values = [
+			$nameUC,
+			strtolower($name),
+			$className,
+			$this->app_env['author_name'],
+			$this->app_env['author_email'],
+			strtoupper($type),
+			strtolower($type),
+			ucfirst(strtolower($type)),
+			date('Y-m-d'),
+			date('H:i:s'),
+			date('Y'),
+			$this->app_env['author_company']
+		];
         $_basic = file_get_contents(__DIR__ . "/_build/templates/_base_class.tp");
+        $_basic = str_replace($fields, $values, $_basic);
         return [
 			'base' => $_basic,
-			'component' => $component
+			'component' => $values
 		];
     }
 }
