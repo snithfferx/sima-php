@@ -52,34 +52,34 @@ class AuthController extends Controller {
 
         return ['status' => 200, 'message' => 'Login exitoso', 'token' => $token];
     }
-public function register($params)
-    {
-        if (empty($params['email']) || empty($params['password'])) {
-            return ['status' => 400, 'message' => 'Email y contraseña requeridos'];
-        }
+	public function register($params)
+		{
+			if (empty($params['email']) || empty($params['password'])) {
+				return ['status' => 400, 'message' => 'Email y contraseña requeridos'];
+			}
 
-        if ($this->model->findByEmail($params['email'])) {
-            return ['status' => 409, 'message' => 'El usuario ya existe'];
-        }
+			if ($this->model->findByEmail($params['email'])) {
+				return ['status' => 409, 'message' => 'El usuario ya existe'];
+			}
 
-        $hashed = password_hash($params['password'], PASSWORD_DEFAULT);
-        $created = $this->model->create([
-            'email' => $params['email'],
-            'password' => $hashed,
-            'role' => $params['role'] ?? 'vendedor',
-            'active' => 1
-        ]);
+			$hashed = password_hash($params['password'], PASSWORD_DEFAULT);
+			$created = $this->model->create([
+				'email' => $params['email'],
+				'password' => $hashed,
+				'role' => $params['role'] ?? 'vendedor',
+				'active' => 1
+			]);
 
-        return ['status' => 201, 'message' => 'Usuario registrado', 'user_id' => $created];
-    }
-    /**
-     * @param array $params
-     * @return array
-     */
-    public function logout(array $params): array
-    {
-        JWTHandler::invalidate();
-        return ['status' => 200, 'message' => 'Logout exitoso'];
-    }
-}
+			return ['status' => 201, 'message' => 'Usuario registrado', 'user_id' => $created];
+		}
+		/**
+		 * @param array $params
+		 * @return array
+		 */
+		public function logout(array $params): array
+		{
+			JWTHandler::invalidate();
+			return ['status' => 200, 'message' => 'Logout exitoso'];
+		}
+	}
 ?>
