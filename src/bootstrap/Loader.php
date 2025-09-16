@@ -46,38 +46,27 @@ class Loader
 
     public function run(): bool
     {
-        $callback = !empty($this->callback) ? $this->callback['resolved'] : [];
-        $params = !empty($this->params) ? $this->params : [];
+        $callback = $this->callback['resolved'] ?? ['module' => 'home', 'controller' => 'home', 'method' => 'index'];
+        $params = $this->params ?? [];
+
         if (empty($callback)) {
-            $callback = ['module'=>'home', 'controller'=>'home', 'method'=>'index'];
+            $this->error = new Error('400', 'No callback function found');
+            return false;
         }
-        if ($callback) {
-            $count = count($callback);
-            if ($count > 0) {
-                // if callback has only one data, it is a module, this will be the controller and method
-                $module = $callback['module'];
-                $method = $callback['method'];
-                $controller = $callback['controller'];
-                // if callback has two data, the first is the module and controller, and the second is the method
-                // if ($count == 2) {
-                //     $method = $callback['method'];
-                // }
-                // If callback has more than two data, the first is the module, the second is the controller, the third is the method
-                // if ($count == 3) {
-                //     $controller = $callback['controller'];
-                //     $method = $callback['method'];
-                // }
-                $result = $this->controller->getModuleResponse($module, $controller, $method, $params)->getResponse();
-				if (!$result) {
-					$this->error = new Error('400', 'No callback function found');
-					return false;
-				}
-                $this->response = new Response($result['code'], $result['message'], $result['data']);
-                return true;
-            }
+
+        $module = $callback['module'];
+        $method = $callback['method'];
+        $controller = $callback['controller'];
+
+        $result = $this->controller->getModuleResponse($module, $controller, $method, $params)->getResponse();
+
+        if (!$result) {
+            $this->error = new Error('400', 'No callback function found');
+            return false;
         }
-        $this->error = new Error('400', 'No callback function found');
-        return false;
+
+        $this->response = new Response($result['code'], $result['message'], $result['data']);
+        return true;
     }
     public function getResponse(): Response|null
     {
@@ -90,36 +79,6 @@ class Loader
 
     public function render(Response $data): void
     {
-        // TODO: Implement render method as view
-        // if ($data->getStatus() === 'ok' || $data->getStatus() === 200) {
-        //     $this->view->render($data);
-        // } else {
-        //     $this->view->render($data);
-        // }
        echo $data->json();
-    }
-    public function end()
-    {
-        if (isset($this->response)) {
-            unset($this->response);
-        }
-        if (isset($this->error)) {
-            unset($this->error);
-        }
-        if (isset($this->callback)) {
-            unset($this->callback);
-        }
-        if (isset($this->params)) {
-            unset($this->params);
-        }
-        if (isset($this->controller)) {
-            unset($this->controller);
-        }
-        if (isset($this->router)) {
-            unset($this->router);
-        }
-        if (isset($this->messenger)) {
-            unset($this->messenger);
-        }
     }
 }
