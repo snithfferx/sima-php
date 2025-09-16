@@ -83,82 +83,31 @@ class ClassBuilder
     private function buildModel(string $name, string|null $options, string|null $location): bool|string
     {
         $nameUC = ucfirst($name);
-        $model_base = $this->getBase($name,'Model');
-		$content = '';
+        $model_base = $this->getBase($name, 'Model');
+        $content = '';
         if ($options == '-c' || $options == '--components') {
-			$model_template = file_get_contents(__DIR__ . "/_build/templates/_model_components.tp");
-			$content = str_replace('{name}', $nameUC, $model_template);
+            $model_template = file_get_contents(__DIR__ . "/_build/templates/_model_components.tp");
+            $content = str_replace('{name}', $nameUC, $model_template);
         } else {
-            $content = "    private array | null \$error;\nprivate array | null \$response;\n";
-			$content .= "    public function __construct() {\n";
+            $content = "    private array | null \$error;\nprivate array | null \$response;";
+            $content .= "    public function __construct() {\n";
             $content .= "        parent::__construct();\n";
             $content .= "    }\n";
-            // Get error and set error
-            $content .= "    /** \n";
-            $content .= "     * Function to set any error occurring on the Model\n";
-            $content .= "     * \n";
-            $content .= "     * @param array \$error\n";
-            $content .= "     * @return void\n";
-            $content .= "     */\n";
-            $content .= "    private function __setError(array \$error): void {\n";
-            $content .= "       if (!is_null(\$this->error) && !empty(\$this->error)) {\n";
-            $content .= "           self::\$error = array_merge(self::\$error, \$error);\n";
-            $content .= "       } else {\n";
-            $content .= "           self::\$error = \$error;\n";
-            $content .= "       }\n";
-            $content .= "   }\n";
-            $content .= "   /** \n";
-            $content .= "    * Function to get the error from the Model\n";
-            $content .= "    * \n";
-            $content .= "    * @return null|array\n";
-            $content .= "    * @throws \Exception\n";
-            $content .= "    */\n";
-            $content .= "   public static function getError (): ?array {\n";
-            $content .= "       return self::\$error;\n";
-            $content .= "   }\n";
-            // Get response and set response
-            $content .= "   /** \n";
-            $content .= "    * Function to set any response occurring on the Model\n";
-            $content .= "    * \n";
-            $content .= "    * @param array \$response\n";
-            $content .= "    * @return void\n";
-            $content .= "    */\n";
-            $content .= "    private function __setResponse(array \$response): void {\n";
-            $content .= "       if (!is_null(\$this->response) && !empty(\$this->response)) {\n";
-            $content .= "           self::\$response = array_merge(self::\$response, \$response);\n";
-            $content .= "       } else {\n";
-            $content .= "           self::\$response = \$response;\n";
-            $content .= "       }\n";
-            $content .= "    }\n";
-            $content .= "    /** \n";
-            $content .= "     * Function to get the response from the Model\n";
-            $content .= "     * \n";
-            $content .= "     * @return null|array\n";
-            $content .= "     * @throws \Exception\n";
-            $content .= "     */\n";
-            $content .= "    public function getResponse (): ?array {\n";
-            $content .= "       return \$this->response;\n";
-            $content .= "    }\n";
         }
-		$content = str_replace('{component_content}', $content, $model_base['base']);
-		$content = str_replace('{component_model}', 'use SIMA\\ENTITIES\\' . $nameUC . ';', $content);
-        $filePath = (!is_null($location)) ? _MODULE_ . "$location/models/" : _MODULE_ . "$name/models/";
+        $content = str_replace('{component_content}', $content, $model_base['base']);
+        $content = str_replace('{component_model}', 'use SIMA\\ENTITIES\\' . $nameUC . ';', $content);
+        $filePath = (!is_null($location)) ? _MODULE_ . "$location/models/": _MODULE_ . "$name/models/";
         $fileName = $nameUC . "Model.php";
-        if (file_exists($filePath . $fileName) && $options != '-f' && $options != '--force') {
-            return "The Model $nameUC already exists\n";
-        } else {
-            if (!file_exists($filePath)) {
-                mkdir($filePath, 0777, true);
-            }
-            file_put_contents($filePath . $fileName, $content);
-            return "The Model $nameUC has been created\n";
-        }
+        $force = $options == '-f' || $options == '--force';
+
+        return $this->createFile($filePath, $fileName, $content, $force);
     }
+
     private function buildController(string $name, string|null $options = null, string|null $location = null): string
     {
         $nameUC = ucfirst($name);
-        $controller_basic = $this->getBase($name,'Controller');
-		$content = "";
+        $controller_basic = $this->getBase($name, 'Controller');
+        $content = "";
         if ($options == '-c' || $options == '--components') {
             $controller_components = file_get_contents(__DIR__ . "/_build/templates/_controller_components.tp");
             $content = str_replace('{name}', $nameUC, $controller_components);
@@ -169,26 +118,20 @@ class ClassBuilder
             $content .= "        \$this->model = new " . $nameUC . "Model;\n";
             $content .= "    }\n";
             // CRUD
-			$content .= "    public function index() {\n";
-			$content .= "        \$this->model->getAll();\n";
-			$content .= "    }\n";
-			$content .= "    public function show(int \$id) {\n";
-			$content .= "        \$this->model->get(\$id);\n";
-			$content .= "    }\n";
+            $content .= "    public function index() {\n";
+            $content .= "        \$this->model->getAll();\n";
+            $content .= "    }\n";
+            $content .= "    public function show(int \$id) {\n";
+            $content .= "        \$this->model->get(\$id);\n";
+            $content .= "    }\n";
         }
-		$content = str_replace('{component_content}', $content, $controller_basic['base']);
-		$content = str_replace('{component_model}', 'use SIMA\\MODULES\\' . $nameUC . '\\models\\' . $nameUC . 'Model;', $content);
+        $content = str_replace('{component_content}', $content, $controller_basic['base']);
+        $content = str_replace('{component_model}', 'use SIMA\\MODULES\\' . $nameUC . '\\models\\' . $nameUC . 'Model;', $content);
         $filePath = (!is_null($location)) ? _MODULE_ . "$location/Controllers/" : _MODULE_ . "$name/Controllers/";
         $fileName = $name . "Controller.php";
-        if (file_exists($filePath.$fileName) && $options != '-f' && $options != '--force') {
-            return "The Controller $nameUC already exists\n";
-        } else {
-            if (!file_exists($filePath)) {
-                mkdir($filePath, 0777, true);
-            }
-            file_put_contents($filePath . $fileName, $content);
-            return "The Controller $nameUC has been created\n";
-        }
+        $force = $options == '-f' || $options == '--force';
+
+        return $this->createFile($filePath, $fileName, $content, $force);
     }
 	/**
 	 * Create a class file module depending on options
@@ -200,34 +143,17 @@ class ClassBuilder
 	 */
     private function buildClass(string $name, string|null $options = null, string|null $location = null): string
     {
-        $nameUC = ucfirst($name);
-        $class = '';
-        $class_base = $this->getBase($name,'Class');
-        if (!is_null($options)) {
-			match ($options) {
-				'-ctr' => $class = $this->buildController($name, $options, $location),
-				'-cm'=> $class = $this->buildModelController($name, $options, $location),
-				'-c' => $class = $this->buildClass($name, $options, $location),
-				'-v' => $class = $this->buildView($name, $options, $location),
-				'-hp' => $class = $this->buildHelper($name, $options, $location),
-				'-hd' => $class = $this->buildHelper($name, $options, $location),
-				'-m' => $class = $this->buildModel($name, $options, $location),
-				'-a' => $class = $this->buildAll($name, $location),
-				'--controller' => $class = $this->buildController($name, $location),
-				'--model' => $class = $this->buildModel($name, $options, $location),
-				'--helper' => $class = $this->buildHelper($name, $options, $location),
-				'--handler' => $class = $this->buildHandler($name, $options, $location),	
-				'--view' => $class = $this->buildView($name, $options, $location),
-				default => $class = $this->buildAll($name, $location),
-			};
-			return $class;
-        } /* else {
-            $class_components = file_get_contents(__DIR__ . "/_build/templates/_class_components.tp");
-            $class_components = str_replace('{name}', $name, $class_components);
-            $class = str_replace('{component_content}', $class_components, $class_base);
-			$class = str_replace('{component_model}', 'use SIMA\\ENTITIES\\' . $nameUC . ';', $class);
-        } */
-	   return "Method not supported: $options";
+        return match ($options) {
+            '-ctr', '--controller' => $this->buildController($name, $options, $location),
+            '-cm' => $this->buildModelController($name, $options, $location),
+            '-c' => $this->buildClass($name, $options, $location),
+            '-v', '--view' => $this->buildView($name, $options, $location),
+            '-hp', '--helper' => $this->buildHelper($name, $options, $location),
+            '-hd', '--handler' => $this->buildHandler($name, $options, $location),
+            '-m', '--model' => $this->buildModel($name, $options, $location),
+            '-a', '--all' => $this->buildAll($name, $location),
+            default => "Method not supported: $options",
+        };
     }
 
     /**
@@ -297,36 +223,27 @@ class ClassBuilder
     {
         $nameUC = ucfirst($name);
         $moduleDir = $location ?? $name;
-		$engine = $this->app_env['app_view']['engine'];
-		$theme = $this->app_env['app_view']['theme'];
+        $engine = $this->app_env['app_view']['engine'];
+        $theme = $this->app_env['app_view']['theme'];
         $filePath = _VIEW_ . "views/$engine/$theme/$moduleDir/";
         $fileName = $name . ".tpl";
+        $content = "{{* Smarty template for module $nameUC *}}\n";
+        $force = $options == '-f' || $options == '--force';
 
-        if (file_exists($filePath . $fileName) && $options != '-f' && $options != '--force') {
-            return "The View $nameUC already exists\n";
-        }
-
-        if (!file_exists($filePath)) {
-            mkdir($filePath, 0777, true);
-        }
-
-        $content = "{{* Smarty template for module $nameUC *}}\\n";
-        file_put_contents($filePath . $fileName, $content);
-
-        return "The View $nameUC has been created\n";
+        return $this->createFile($filePath, $fileName, $content, $force);
     }
 
     private function buildHelper(string $name, string|null $options = null, string|null $location = null): string
     {
         $nameUC = ucfirst($name);
         $moduleDir = $location ?? $name;
-        
+
         $helper_base = $this->getBase($name, 'Helper');
-        
+
         $content = '';
         if ($options == '-c' || $options == '--components') {
             $helper_template = "    // Component-based helper content for {name}\n";
-			$content = str_replace('{name}', $nameUC, $helper_template);
+            $content = str_replace('{name}', $nameUC, $helper_template);
         } else {
             $content = "    public function __construct() {\n";
             $content .= "    }\n";
@@ -334,36 +251,28 @@ class ClassBuilder
 
         $finalContent = str_replace('{component_content}', $content, $helper_base['base']);
         $finalContent = str_replace('{component_model}', '', $finalContent);
-        
+
         $targetNamespace = 'namespace SIMA\\MODULES\\' . ucfirst($moduleDir) . '\\helpers;';
-        $finalContent = preg_replace('/namespace\s+SIMA\\\\\[^;]+;/', $targetNamespace, $finalContent);
+        $finalContent = preg_replace('/namespace\\s+SIMA\\\\[^;]+;/', $targetNamespace, $finalContent);
 
         $filePath = _MODULE_ . "$moduleDir/helpers/";
         $fileName = $nameUC . "Helper.php";
+        $force = $options == '-f' || $options == '--force';
 
-        if (file_exists($filePath . $fileName) && $options != '-f' && $options != '--force') {
-            return "The Helper $nameUC already exists\n";
-        }
-        
-        if (!file_exists($filePath)) {
-            mkdir($filePath, 0777, true);
-        }
-        
-        file_put_contents($filePath . $fileName, $finalContent);
-        return "The Helper $nameUC has been created\n";
+        return $this->createFile($filePath, $fileName, $finalContent, $force);
     }
 
     private function buildHandler(string $name, string|null $options = null, string|null $location = null): string
     {
         $nameUC = ucfirst($name);
         $moduleDir = $location ?? $name;
-        
+
         $handler_base = $this->getBase($name, 'Handler');
-        
+
         $content = '';
         if ($options == '-c' || $options == '--components') {
             $handler_template = "    // Component-based handler content for {name}\n";
-			$content = str_replace('{name}', $nameUC, $handler_template);
+            $content = str_replace('{name}', $nameUC, $handler_template);
         } else {
             $content = "    public function __construct() {\n";
             $content .= "    }\n";
@@ -371,23 +280,15 @@ class ClassBuilder
 
         $finalContent = str_replace('{component_content}', $content, $handler_base['base']);
         $finalContent = str_replace('{component_model}', '', $finalContent);
-        
+
         $targetNamespace = 'namespace SIMA\\MODULES\\' . ucfirst($moduleDir) . '\\handlers;';
-        $finalContent = preg_replace('/namespace\s+SIMA\\\\\[^;]+;/', $targetNamespace, $finalContent);
+        $finalContent = preg_replace('/namespace\\s+SIMA\\\\[^;]+;/', $targetNamespace, $finalContent);
 
         $filePath = _MODULE_ . "$moduleDir/handlers/";
         $fileName = $nameUC . "Handler.php";
+        $force = $options == '-f' || $options == '--force';
 
-        if (file_exists($filePath . $fileName) && $options != '-f' && $options != '--force') {
-            return "The Handler $nameUC already exists\n";
-        }
-        
-        if (!file_exists($filePath)) {
-            mkdir($filePath, 0777, true);
-        }
-        
-        file_put_contents($filePath . $fileName, $finalContent);
-        return "The Handler $nameUC has been created\n";
+        return $this->createFile($filePath, $fileName, $finalContent, $force);
     }
 
     private function buildAll(string $name, string|null $options = null, string|null $location = null): string
@@ -405,5 +306,20 @@ class ClassBuilder
             $output .= "- $result";
         }
         return $output;
+    }
+
+    private function createFile(string $filePath, string $fileName, string $content, bool $force = false): string
+    {
+        if (file_exists($filePath . $fileName) && !$force) {
+            return "The file $fileName already exists\n";
+        }
+
+        if (!file_exists($filePath)) {
+            mkdir($filePath, 0755, true);
+        }
+
+        file_put_contents($filePath . $fileName, $content);
+
+        return "The file $fileName has been created\n";
     }
 }
