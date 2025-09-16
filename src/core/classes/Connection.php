@@ -34,9 +34,12 @@ class Connection
 
     public function __construct(string | null $dbName = null)
     {
-        if ($dbName) {
-            $this->db_name = $dbName;
-        }
+        $this->host = $_ENV['DB_HOST'] ?? 'localhost';
+        $this->db_name = $dbName ?? $_ENV['DB_DATABASE'] ?? 'sima';
+        $this->username = $_ENV['DB_USERNAME'] ?? 'root';
+        $this->password = $_ENV['DB_PASSWORD'] ?? '';
+        $this->charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
+
         try {
             $this->dsn = "mysql:host={$this->host};dbname={$this->db_name};charset={$this->charset}";
             $this->options = [
@@ -46,13 +49,8 @@ class Connection
             ];
             $this->pdo = new PDO($this->dsn, $this->username, $this->password, $this->options);
         } catch (PDOException $e) {
-            $this->setError(['code' => $e->getCode(), 'message' => $e->getMessage()]);
+            throw new Exception("Database connection failed: " . $e->getMessage());
         }
-    }
-
-    public function __destruct()
-    {
-        $this->pdo = null;
     }
 
     public function setError(array $error)
@@ -70,31 +68,32 @@ class Connection
         return $this->response;
     }
 
-    public function query(string $strStatement, array $arrParams = []): self
+    public function query(string $strStatement, array $arrParams = []): array
     {
         $this->getDbData($strStatement, $arrParams);
-        return $this;
+        return $this->response;
     }
 
     private function getDbData(string $strStatement, array $arrParams = []): void
     {
-        // Check if the connection is established
         if (!$this->pdo) {
-            $this->pdo = new PDO($this->dsn, $this->username, $this->password, $this->options);
+            try {
+                $this->pdo = new PDO($this->dsn, $this->username, $this->password, $this->options);
+            } catch (PDOException $e) {
+                throw new Exception("Database connection failed: " . $e->getMessage());
+            }
         }
         try {
-            // Prepare the statement
             $stmt = $this->pdo->prepare($strStatement);
-            // Execute the statement
             $stmt->execute($arrParams);
-            // if the query is a select, return the data
+
             if (str_starts_with(strtolower($strStatement), 'select')) {
                 $this->response = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $this->response = ['affectedRows' => $stmt->rowCount(), 'insertId' => $this->pdo->lastInsertId()];
             }
-            // Return the number of affected rows and the last inserted ID
-            $this->response = ['affectedRows' => $stmt->rowCount(), 'insertId' => $this->pdo->lastInsertId()];
         } catch (Exception $e) {
-            $this->setError(['code' => $e->getCode(), 'message' => $e->getMessage()]);
+            throw new Exception("Query failed: " . $e->getMessage());
         }
     }
 }
