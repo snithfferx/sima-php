@@ -20,14 +20,14 @@ class Messenger
     {
         // Constructor
     }
-    public function build(string $type = 'info', string | array $data = '')
+    public static function build(string $type = 'info', string | array $data = '')
     {
         return match ($type) {
-            "info" => $this->buildInfoMessage($data),
-            "error" => $this->buildErrorMessage($data),
-            "success" => $this->buildSuccessMessage($data),
-            "warning" => $this->buildWarningMessage($data),
-            default => $this->buildAMessage($data),
+            "info" => self::buildInfoMessage($data),
+            "error" => self::buildErrorMessage($data),
+            "success" => self::buildSuccessMessage($data),
+            "warning" => self::buildWarningMessage($data),
+            default => self::buildAMessage($data),
         };
     }
     public static function json(array $data): string
@@ -46,9 +46,9 @@ class Messenger
     {
         return self::build($type, $data);
     }
-    private function buildInfoMessage(string | array $data)
+    public static function buildInfoMessage(string | array $data)
     {
-        return $this->buildAMessage([
+        return self::buildAMessage([
             'typo' => "Information",
             'message' => (isset($data['message'])) ? $data['message'] : "This is an information message",
             'code' => (isset($data['code'])) ? $data['code'] : "200",
@@ -69,9 +69,9 @@ class Messenger
         ]);
     }
 
-    private function buildErrorMessage(string | array $data)
+    public static function buildErrorMessage(string | array $data)
     {
-        return $this->buildAMessage([
+        return self::buildAMessage([
             'typo' => "Execution error!",
             'message' => (isset($data['message'])) ? $data['message'] : "An error occurred during the execution of the process",
             'code' => (isset($data['code'])) ? $data['code'] : "500",
@@ -92,9 +92,9 @@ class Messenger
         ]);
     }
 
-    private function buildSuccessMessage(string | array $data)
+    public static function buildSuccessMessage(string | array $data)
     {
-        return $this->buildAMessage([
+        return self::buildAMessage([
             'typo' => "Success",
             'message' => (isset($data['message'])) ? $data['message'] : "The process was executed successfully",
             'code' => (isset($data['code'])) ? $data['code'] : "200",
@@ -115,9 +115,9 @@ class Messenger
         ]);
     }
 
-    private function buildWarningMessage(string | array $data)
+    public static function buildWarningMessage(string | array $data)
     {
-        return $this->buildAMessage([
+        return self::buildAMessage([
             'typo' => "Warning",
             'message' => (isset($data['message'])) ? $data['message'] : "This is a warning message",
             'code' => (isset($data['code'])) ? $data['code'] : "200",
@@ -138,7 +138,7 @@ class Messenger
         ]);
     }
 
-    private function buildAMessage(string | array $data)
+    public static function buildAMessage(string | array $data)
     {
         $extra = "";
         if (isset($data['extra']) && is_array($data['extra'])) {
