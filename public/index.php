@@ -19,5 +19,3 @@ if ($response === null) {
 }
 # Rendering the view or message
 $app->render($response);
-# Destroying application instance
-$app->end();
