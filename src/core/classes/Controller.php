@@ -2,19 +2,20 @@
 /**
  * Controller Class to manage the application logic
  * @description This class is the base class for all controllers
- * @author Jorge Echeverria 
- * @category Class 
+ * @author Jorge Echeverria
+ * @category Class
  * @package CLASSES\Controller
- * @version 1.7.0 
+ * @version 1.7.0
  * @date 2024-03-11 | 2025-07-29
  * @time 22:30:00
- * @copyright (c) 2024 - 2025 Bytes4Run 
+ * @copyright (c) 2024 - 2025 Bytes4Run
  */
-declare(strict_types=1);
+declare (strict_types = 1);
 
 namespace SIMA\CLASSES;
 
 use Exception;
+use SIMA\MIDDLEWARES\Auth;
 
 class Controller
 {
@@ -22,95 +23,96 @@ class Controller
     private ?array $response;
     public function __construct()
     {
-        $this->error = null;
+        $this->error    = null;
         $this->response = null;
     }
-    
-    public function getError(): ?array {
+
+    public function getError(): ?array
+    {
         return $this->error;
     }
 
-    public function getResponse(): ?array {
+    public function getResponse(): ?array
+    {
         return $this->response;
     }
 
-    public function setError($error): void {
+    public function setError($error): void
+    {
         if ($error instanceof Exception) {
-            $this->error = ['code'=>$error->getCode(),'message' => $error->getMessage()];
+            $this->error = ['code' => $error->getCode(), 'message' => $error->getMessage()];
         }
     }
 
-    function getModuleResponse(string $module, string $controller, string $method, array | null $params)
+    public function getModuleResponse(string $module, string $controller, string $method, array | null $params)
     {
-        $status = 404;
-        $message = 'Method not found';
-        $data = null;
         $component = $this->getComponent($module, $controller);
+
         if ($component instanceof Exception) {
-            $this->response = ['code' => $component->getCode(), 'message' => $component->getMessage(), 'data' => $data];
+            $this->response = ['code' => $component->getCode(), 'message' => $component->getMessage(), 'data' => null];
+            return $this;
         }
+
         if (method_exists($component, $method)) {
             try {
+                if (property_exists($component, 'access') && isset($component::$access[$method])) {
+                    $rolesPermitidos = $component::$access[$method];
+                    if (! Auth::checkRole($rolesPermitidos)) {
+                        $this->response = ['code' => 403, 'message' => 'Acceso denegado', 'data' => null];
+                        return $this;
+                    }
+                }
                 $componentInitialized = [$component, $method];
-                $params = ($params == null) ? [] : [$params];
-                $data = call_user_func_array($componentInitialized, $params);
-                $this->response = ['code' => 200, 'message' => 'ok', 'data' => $data];
+                $params               = ($params == null) ? [] : [$params];
+                $data                 = call_user_func_array($componentInitialized, $params);
+                $this->response       = ['code' => 200, 'message' => 'ok', 'data' => $data];
             } catch (\Throwable $th) {
-                $this->response = ['code' => $th->getCode(), 'message' => $th->getMessage(), 'data' => $data];
+                $this->response = ['code' => $th->getCode(), 'message' => $th->getMessage(), 'data' => null];
             }
+        } else {
+            $this->response = ['code' => 404, 'message' => 'Method not found', 'data' => null];
         }
-        $this->response = ['code' => $status, 'message' => $message, 'data' => $data];
         return $this;
     }
-    
-    protected function getController (string $name) {
+
+    protected function getController(string $name)
+    {
+        return $this->getComponent($name, "controller");
+    }
+
+    protected function getModel(string $name)
+    {
+        return $this->getComponent($name, "model");
+    }
+
+    private function getComponent(string $name, string $type = "controller"): object
+    {
         $splitName = explode("/", $name);
         if (sizeof($splitName) > 1) {
             $moduleName = $splitName[0];
-            $controllerName = $splitName[1];
+            $componentName = $splitName[1];
         } else {
             $moduleName = $splitName[0];
-            $controllerName = $splitName[0];
+            $componentName = $splitName[0];
         }
-        return $this->getComponent($moduleName, "controller", $controllerName);
-    }
 
-    protected function getModel (string $name) {
-        $splitName = explode("/", $name);
-        if (sizeof($splitName) > 1) {
-            $moduleName = $splitName[0];
-            $modelName = $splitName[1];
-        } else {
-            $moduleName = $splitName[0];
-            $modelName = $splitName[0];
-        }
-        return $this->getComponent($moduleName, "model", $modelName);
-    }
-
-    private function getComponent(string $moduleName, string $type = "controller", ?string $componentName = null): object {
-        // $moduleName = ucfirst($moduleName);
         $module = ucfirst($moduleName);
-        if (is_null($componentName)) {
-            $componentName = $module;
-        }
-        $component = "MODULES\\";
+        $componentName = ucfirst($componentName);
+
+        $component = "SIMA\\MODULES\\";
         $component .= match ($type) {
             "model"   => $module . "\\models\\" . $componentName . "Model",
-            default   => $module . "\\controllers\\" . $componentName . "Controller",
             "helper"  => $module . "\\helpers\\_" . $componentName . "Helper",
             "handler" => $module . "\\handlers\\__" . $componentName . "handler",
             "library" => $module . "\\libraries\\_" . $componentName . "_Library",
+            default   => $module . "\\controllers\\" . $componentName . "Controller",
         };
-        // $path = str_replace("/", "\\", $path);
+
         try {
             if (class_exists($component)) {
-                try {
-                    return new $component;
-                } catch (Exception $th) {
-                    return $th;
-                }
+                return new $component;
             } else {
-                throw new Exception("Component not found");
+                throw new Exception("Component not found: ". $component);
             }
         } catch (Exception $th) {
             return $th;
@@ -128,7 +130,7 @@ class Controller
      */
     protected function view(string $name, array $content = [], string $type = 'template', array $breadcrumbs = [], string | int $code = '', array $style = []): array
     {
-        if (!empty($name)) {
+        if (! empty($name)) {
             if (empty($breadcrumbs)) {
                 $breadcrumbs = $this->createBreadcrumbs($name);
             }
@@ -138,13 +140,13 @@ class Controller
                 'type' => $type,
                 'name' => $name,
                 'data' => [
-                    'code' => $code,
+                    'code'  => $code,
                     'style' => $style,
                 ],
             ],
             'data' => [
                 'breadcrumbs' => $breadcrumbs,
-                'datos' => $content,
+                'datos'       => $content,
             ],
         ];
     }
@@ -167,11 +169,11 @@ class Controller
      */
     protected function createBreadcrumbs(string | array $values): array
     {
-        $routes = array();
-        $mdl = 'home';
-        $ctr = 'home';
-        $mtd = 'index';
-        $prm = null;
+        $routes = [];
+        $mdl    = 'home';
+        $ctr    = 'home';
+        $mtd    = 'index';
+        $prm    = null;
         if (is_string($values)) {
             $name = explode("/", $values);
             if (sizeof($name) > 2) {
@@ -185,9 +187,9 @@ class Controller
                 $mtd = "index";
             }
             array_push($routes, [
-                'text' => $mdl,
-                'param' => $prm,
-                'method' => $mtd,
+                'text'       => $mdl,
+                'param'      => $prm,
+                'method'     => $mtd,
                 'controller' => $ctr,
             ]);
         } else {
@@ -204,20 +206,20 @@ class Controller
                 $ctr = $child['module'];
                 $mtd = $child['method'];
                 if (isset($child['params'])) {
-                    $prm = (is_array($child['params'])) 
+                    $prm = (is_array($child['params']))
                         ? implode("|", $child['params'])
                         : $child['params'];
                 }
                 array_push($routes, [
-                    'text' => $mdl,
-                    'param' => $prm,
-                    'method' => $mtd,
+                    'text'       => $mdl,
+                    'param'      => $prm,
+                    'method'     => $mtd,
                     'controller' => $ctr,
                 ]);
             }
         }
         return [
-            'main' => $mdl,
+            'main'   => $mdl,
             'routes' => $routes,
         ];
     }
@@ -228,25 +230,26 @@ class Controller
      * @param string $display
      * @return array
      */
-    public function error(string | int $type, mixed $content, string $display = "alert"): array {
+    public function error(string | int $type, mixed $content, string $display = "alert"): array
+    {
         if (is_string($type)) {
             $type = match ($type) {
-                "info" => 200,
-                "error" => 500,
+                "info"    => 200,
+                "error"   => 500,
                 "success" => 200,
                 "warning" => 200,
-                default => 200,
+                default   => 200,
             };
         }
         if (is_array($content)) {
             $message = $content['message'];
-            $code = $content['code'];
+            $code    = $content['code'];
         } elseif (is_string($content)) {
             $message = $content;
-            $code = $type;
+            $code    = $type;
         } elseif ($content instanceof Exception) {
             $message = $content->getMessage();
-            $code = $content->getCode();
+            $code    = $content->getCode();
         }
         if ($display == "view" || $display == "template") {
             return [
@@ -254,7 +257,7 @@ class Controller
                     'type' => $display,
                     'name' => $code,
                     'data' => [
-                        'code' => $code,
+                        'code'  => $code,
                         'style' => [
                             'title' => "Error " . $code,
                             'color' => "danger",
@@ -273,8 +276,8 @@ class Controller
                 ],
                 'data' => [
                     'message' => $message,
-                    'code' => $code,
-                    'type' => $type,
+                    'code'    => $code,
+                    'type'    => $type,
                 ],
             ];
         }
@@ -285,18 +288,27 @@ class Controller
      * @param array $data The data array containing the response data.
      * @return array The JSON response array with the response type and encoded data.
      */
-    protected function json (array $data) {
-        $code = (isset($data['status'])) ? $data['status'] : $data['data']['code'];
-        http_response_code(intval($code));
-        return array('json',json_encode($data, JSON_PRETTY_PRINT));
+    protected function json(array $data, int $code = 200)
+    {
+        return [
+            'code' => $code,
+            'message' => 'ok',
+            'data' => $data,
+            'type' => 'json'
+        ];
     }
-    /** 
+
+    /**
      * Function to Redirect to another page given
      * @param string $url
      */
-    protected function redirect(string $url) {
-        http_response_code(301);
-        return array('redirect',$url);
+    protected function redirect(string $url)
+    {
+        return [
+            'code' => 301,
+            'message' => 'redirect',
+            'data' => $url,
+            'type' => 'redirect'
+        ];
     }
 }
-
