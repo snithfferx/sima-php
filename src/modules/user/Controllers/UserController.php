@@ -20,7 +20,15 @@ use Throwable;
 # Classes
 use SIMA\MODULES\User\models\UserModel;
 class UserController extends Controller {
-        private UserModel $model;
+    protected array $access = [
+        'readOne' => ['admin', 'user'],
+        'readAll' => ['admin'],
+        'readByEmail' => ['admin', 'user'],
+        'readByUsername' => ['admin', 'user'],
+        'readByTerms' => ['admin', 'user'],
+    ];
+    protected array $params = [];
+    private UserModel $model;
     public function __construct() {
         $this->model = new UserModel;
     }
