@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import tailwindcss from '@tailwindcss/vite'
+import tailwindcss from '@tailwindcss/vite';
+import react from "@vitejs/plugin-react";
+import flowbiteReact from "flowbite-react/plugin/vite";
 
 export default defineConfig({
   plugins: [
@@ -12,7 +14,9 @@ export default defineConfig({
       refresh: true,
       hotFile: 'cache/vite/vite.hot',
     }),
-    tailwindcss(),
+		tailwindcss(),
+	react(),
+	flowbiteReact(),
   ],
   build: {
     manifest: true,
