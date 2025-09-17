@@ -1,0 +1,16 @@
+{
+  "resources/css/global.css": {
+    "file": "assets/global-CNBdG9E8.css",
+    "src": "resources/css/global.css",
+    "isEntry": true
+  },
+  "resources/js/global.ts": {
+    "file": "assets/global-rWBOoSO9.js",
+    "name": "global",
+    "src": "resources/js/global.ts",
+    "isEntry": true,
+    "css": [
+      "assets/global-CNBdG9E8.css"
+    ]
+  }
+}
