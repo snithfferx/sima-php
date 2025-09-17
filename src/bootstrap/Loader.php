@@ -19,6 +19,7 @@ use SIMA\HELPERS\Definer;
 use SIMA\HELPERS\Messenger;
 use SIMA\TYPES\Error;
 use SIMA\TYPES\Response;
+use SIMA\HELPERS\ViewBuilder;
 
 class Loader
 {
@@ -29,38 +30,40 @@ class Loader
     private array|null $callback;
     private array|null $params;
     private Controller $controller;
+	private ViewBuilder $viewBuilder;
 
     public function __construct()
     {
         new Definer();
-        $this->messenger = new Messenger();
+        $this->messenger  = new Messenger();
         $this->controller = new Controller();
-        $this->response = null;
-        $this->error = null;
-        $this->router = new Router();
+        $this->response   = null;
+        $this->error      = null;
+        $this->router     = new Router();
+		$this->viewBuilder = new ViewBuilder();
         // Getting request parameters
         $this->router->resolve();
         $this->callback = $this->router->getCallback();
-        $this->params = $this->router->getParams();
+        $this->params   = $this->router->getParams();
     }
 
     public function run(): bool
     {
         $callback = $this->callback['resolved'] ?? ['module' => 'home', 'controller' => 'home', 'method' => 'index'];
-        $params = $this->params ?? [];
+        $params   = $this->params ?? [];
 
         if (empty($callback)) {
             $this->error = new Error('400', 'No callback function found');
             return false;
         }
 
-        $module = $callback['module'];
-        $method = $callback['method'];
+        $module     = $callback['module'];
+        $method     = $callback['method'];
         $controller = $callback['controller'];
 
         $result = $this->controller->getModuleResponse($module, $controller, $method, $params)->getResponse();
 
-        if (!$result) {
+        if (! $result) {
             $this->error = new Error('400', 'No callback function found');
             return false;
         }
@@ -68,17 +71,21 @@ class Loader
         $this->response = new Response($result['code'], $result['message'], $result['data']);
         return true;
     }
-    public function getResponse(): Response|null
+    public function getResponse(): Response | null
     {
         return $this->response;
     }
-    public function getError(): Error|null
+    public function getError(): Error | null
     {
         return $this->error;
     }
 
     public function render(Response $data): void
     {
-       echo $data->json();
+		// echo $data->json();
+		$res = $data->toArray();
+		$this->viewBuilder->render(
+			$res['data']['view'], 
+			$res['data']);
     }
 }
