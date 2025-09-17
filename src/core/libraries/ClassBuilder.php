@@ -113,9 +113,9 @@ class ClassBuilder
             $content = str_replace('{name}', $nameUC, $controller_components);
         } else {
             // Constructor
-            $content = "    private " . $nameUC . "Model \$model;\n";
+            $content = "    private " . $nameUC . "Model \$model;";
             $content .= "    public function __construct(int \$id = null) {\n";
-            $content .= "        \$this->model = new " . $nameUC . "Model;\n";
+            $content .= "        \$this->model = new " . $nameUC . "Model;";
             $content .= "    }\n";
             // CRUD
             $content .= "    public function index() {\n";
@@ -135,7 +135,7 @@ class ClassBuilder
     }
 	/**
 	 * Create a class file module depending on options
-	 * 
+	 *
 	 * @param string $name
 	 * @param string|null $options
 	 * @param string|null $location
@@ -238,22 +238,22 @@ class ClassBuilder
         $nameUC = ucfirst($name);
         $moduleDir = $location ?? $name;
 
-        $helper_base = $this->getBase($name, 'Helper');
+        $handler_base = $this->getBase($name, 'Helper');
 
         $content = '';
         if ($options == '-c' || $options == '--components') {
-            $helper_template = "    // Component-based helper content for {name}\n";
-            $content = str_replace('{name}', $nameUC, $helper_template);
+            $handler_template = "    // Component-based helper content for {name}\n";
+            $content = str_replace('{name}', $nameUC, $handler_template);
         } else {
             $content = "    public function __construct() {\n";
             $content .= "    }\n";
         }
 
-        $finalContent = str_replace('{component_content}', $content, $helper_base['base']);
+        $finalContent = str_replace('{component_content}', $content, $handler_base['base']);
         $finalContent = str_replace('{component_model}', '', $finalContent);
 
-        $targetNamespace = 'namespace SIMA\\MODULES\\' . ucfirst($moduleDir) . '\\helpers;';
-        $finalContent = preg_replace('/namespace\\s+SIMA\\\\[^;]+;/', $targetNamespace, $finalContent);
+        $targetNamespace = 'namespace SIMA\\MODULES\\' . ucfirst($moduleDir) . '\helpers;';
+        $finalContent = preg_replace('/namespace\s+SIMA\\[^;]+;/', $targetNamespace, $finalContent);
 
         $filePath = _MODULE_ . "$moduleDir/helpers/";
         $fileName = $nameUC . "Helper.php";
@@ -281,8 +281,8 @@ class ClassBuilder
         $finalContent = str_replace('{component_content}', $content, $handler_base['base']);
         $finalContent = str_replace('{component_model}', '', $finalContent);
 
-        $targetNamespace = 'namespace SIMA\\MODULES\\' . ucfirst($moduleDir) . '\\handlers;';
-        $finalContent = preg_replace('/namespace\\s+SIMA\\\\[^;]+;/', $targetNamespace, $finalContent);
+        $targetNamespace = 'namespace SIMA\\MODULES\\' . ucfirst($moduleDir) . '\handlers;';
+        $finalContent = preg_replace('/namespace\s+SIMA\\[^;]+;/', $targetNamespace, $finalContent);
 
         $filePath = _MODULE_ . "$moduleDir/handlers/";
         $fileName = $nameUC . "Handler.php";
