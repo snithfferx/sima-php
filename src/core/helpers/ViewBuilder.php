@@ -54,8 +54,8 @@ class ViewBuilder
      */
     public function __construct()
     {
-        $conf = new Configs();
-        $this->vars = $conf->get('config', 'json');
+        $conf        = new Configs();
+        $this->vars  = $conf->get('config', 'json');
         $this->theme = $this->vars['app_view']['engine'] . "/" . $this->vars['app_view']['theme'];
         if ($this->vars['app_view']['engine'] !== 'json') {
             $this->engine = new ViewEngine($this->vars['app_view']['engine']);
@@ -70,7 +70,7 @@ class ViewBuilder
      * @param array|null $data
      * @return void
      */
-    public function render(string|array $view, array $data = []): void
+    public function render(string | array $view, array $data = []): void
     {
         $this->token = $_SESSION['token'] ?? '';
         if ($this->engine !== "json") {
@@ -80,7 +80,7 @@ class ViewBuilder
                 $this->engine->assign('theme', $this->theme);
                 $this->engine->render($this->path);
             } else {
-                $this->buildDefaultView($view,$data,'not_found');
+                $this->buildDefaultView($view, $data, 'not_found');
             }
         } else {
             header('Content-Type: application/json'); //Especificamos el tipo de contenido a devolver
@@ -95,7 +95,7 @@ class ViewBuilder
      * @param string|array $view
      * @return bool
      */
-    private function find(string|array $view): bool
+    private function find(string | array $view): bool
     {
         if (is_array($view)) {
             if ($view['type'] !== "json") {
@@ -115,37 +115,47 @@ class ViewBuilder
     private function createData(array $data): array
     {
         $userData = [];
-        if (!empty($data['view'])) {
-            $title = str_replace("/", " | ", $data['view']);
+        if (! empty($data['view'])) {
+            $title = str_replace("/", " | ", $data['view']['name']);
         }
-        if (!empty($data['user'])) {
+        if (! empty($data['user'])) {
             $userData = $data['user'];
         }
         $this->vars['technology'][0]['name'] = "PHP " . phpversion();
-        $this->vars['technology'][0]['icon'] = "fab fa-php";
+        $this->vars['technology'][0]['icon'] = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4" /><path d="M5 18h1.5a1.5 1.5 0 0 0 0 -3h-1.5v6" /><path d="M17 18h1.5a1.5 1.5 0 0 0 0 -3h-1.5v6" /><path d="M11 21v-6" /><path d="M14 15v6" /><path d="M11 18h3"/></svg>';
+        $cssClasses                          = $this->getGlobalBuildAsset('css');
+        if ($cssClasses !== null) {
+            $this->vars['app_css'] = $cssClasses;
+        }
+        $jsClasses = $this->getGlobalBuildAsset('js');
+        if ($jsClasses !== null) {
+            $this->vars['app_js'] = $jsClasses;
+        }
         return [
             'content' => $data,
-            'layout' => [
-                'head' => [
-                    'template' => "_shared/templates/_head.tpl",
-                    'page_title' => $title ?? "",
-                    'meta' => $this->getMeta(),
-                    'css' => '',
+            'layout'  => [
+                'head'    => [
+                    'template' => "/components/_shared/Head.tpl",
+                    'data'     => [
+                        'page_title' => $title ?? "",
+                        'meta'       => $this->getMeta(),
+                        'css'        => [],
+                        'js'         => [],
+                    ],
                 ],
-                'body' => ['layout' => 'hold-transition sidebar-mini layout-fixed layout-footer-fixed', 'darkmode' => false],
-                'footer' => [
-                    'template' => "_shared/templates/_footer.tpl",
-                    'data' => [],
+                'footer'  => [
+                    'template' => "/components/_shared/Footer.tpl",
+                    'data'     => [],
                 ],
-                'navbar' => [
-                    'template' => "_shared/templates/_navbar.tpl",
-                    'data' => [
+                'navbar'  => [
+                    'template' => "/components/_shared/Navbar.tpl",
+                    'data'     => [
                         'app_logo' => (isset($userData['mode']) && $userData['mode'] == "dark") ? $this->vars['darkLogo'] : $this->vars['app_logo'],
-                        'user' => $userData
+                        'user'     => $userData,
                     ],
                 ],
                 'scripts' => '',
-                'app' => [
+                'app'     => [
                     'data' => $this->vars,
                 ],
             ],
@@ -164,14 +174,12 @@ class ViewBuilder
             case "template":
                 $name = explode('/', $view['name']);
                 if (count($name) > 2) {
-                    $app = $name[0];
-                    $module = $name[1];
+                    $app      = $name[0];
+                    $module   = $name[1];
                     $viewName = $name[2];
-                    $path .= $app . "/" . $module . "/templates/" . $viewName . ".tpl";
+                    $path .= $app . "/modules/" . $module . $viewName . ".tpl";
                 } elseif (count($name) == 2) {
-                    $module = $name[0];
-                    $viewName = $name[1];
-                    $path .= $module . "/templates/" . $viewName . ".tpl";
+                    $path .= "modules/" . $view['name'] . ".tpl";
                 } else {
                     $path .= "default/templates/" . $name[0] . ".tpl";
                 }
@@ -179,12 +187,12 @@ class ViewBuilder
             case "layout":
                 $name = explode('/', $view['name']);
                 if (count($name) > 2) {
-                    $app = $name[0];
-                    $module = $name[1];
+                    $app      = $name[0];
+                    $module   = $name[1];
                     $viewName = $name[2];
                     $path .= $app . "/" . $module . "/layouts/" . $viewName . ".tpl";
                 } elseif (count($name) == 2) {
-                    $module = $name[0];
+                    $module   = $name[0];
                     $viewName = $name[1];
                     $path .= $module . "/layouts/" . $viewName . ".tpl";
                 } else {
@@ -210,9 +218,9 @@ class ViewBuilder
             ['meta_name' => "background_color", 'meta_content' => $this->vars['app_background_color']],
             ['meta_name' => "apple-mobile-web-app-capable", 'meta_content' => "yes"],
             ['meta_name' => "apple-mobile-web-app-status-bar-style", 'meta_content' => "black"],
-            ['meta_name' => "apple-mobile-web-app-title", 'meta_content' => $this->vars['app_name']],
-            ['meta_name' => "application-name", 'meta_content' => $this->vars['app_name']],
-            ['meta_name' => "description", 'meta_content' => $this->vars['app_description']],
+            // ['meta_name' => "apple-mobile-web-app-title", 'meta_content' => $this->vars['app_name']],
+            // ['meta_name' => "application-name", 'meta_content' => $this->vars['app_name']],
+            // ['meta_name' => "description", 'meta_content' => $this->vars['app_description']],
             ['meta_name' => "format-detection", 'meta_content' => "telephone=no"],
             ['meta_name' => "mobile-web-app-capable", 'meta_content' => "yes"],
             ['meta_name' => "msapplication-config", 'meta_content' => ""],
@@ -228,25 +236,26 @@ class ViewBuilder
      * @param string $type
      * @return void
      */
-    private function buildDefaultView(string|array $view, array $data, string $type): void {
+    private function buildDefaultView(string | array $view, array $data, string $type): void
+    {
         $this->path = _VIEW_ . $this->theme . "/default/" . $type . ".tpl";
-        $viewData = [
+        $viewData   = [
             'content' => $data,
-            'view' => $view,
-            'layout' => [
-                'head' => [
-                    'template' => "_shared/templates/_head.tpl",
-                    'css' => '',
+            'view'    => $view,
+            'layout'  => [
+                'head'    => [
+                    'template'   => "_shared/templates/_head.tpl",
+                    'css'        => '',
                     'page_title' => $type,
-                    'meta' => $this->getMeta(),
+                    'meta'       => $this->getMeta(),
                 ],
-                'body' => ['layout' => 'hold-transition sidebar-mini layout-fixed', 'darkmode' => false],
-                'footer' => [
+                'body'    => ['layout' => 'hold-transition sidebar-mini layout-fixed', 'darkmode' => false],
+                'footer'  => [
                     'template' => "_shared/templates/_footer.tpl",
-                    'data' => [],
+                    'data'     => [],
                 ],
                 'scripts' => '',
-                'app' => [
+                'app'     => [
                     'data' => $this->vars,
                 ],
             ],
@@ -255,5 +264,60 @@ class ViewBuilder
         $this->engine->assign('token', $this->token);
         $this->engine->assign('theme', $this->theme);
         $this->engine->render($this->path);
+    }
+
+    /**
+     * Get the full filename of the build asset that starts with "global-"
+     * Looks into the public/build/assets directory defined by _ASSETS_.
+     *
+     * @param string|null $type Optional filter: 'css' or 'js' to prefer extensions
+     * @return string|null Returns the filename (relative to public/) or null if not found
+     */
+    private function getGlobalBuildAsset(?string $type = null): ?string
+    {
+        // Build the directory path where Vite places built assets
+        $assetsDir = rtrim(_ASSETS_, "\\/") . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR;
+
+        if (! is_dir($assetsDir)) {
+            return null;
+        }
+
+        $files = scandir($assetsDir);
+        if ($files === false) {
+            return null;
+        }
+
+        $preferredExt = null;
+        if ($type === 'css') {
+            $preferredExt = '.css';
+        } elseif ($type === 'js') {
+            $preferredExt = '.js';
+        }
+
+        // First try to find a file that matches the preferred extension
+        foreach ($files as $f) {
+            if ($f === '.' || $f === '..') {
+                continue;
+            }
+
+            if (str_starts_with($f, 'global-')) {
+                if ($preferredExt !== null && str_ends_with($f, $preferredExt)) {
+                    return 'build/assets/' . $f;
+                }
+            }
+        }
+
+        // Fallback: return the first file that starts with global-
+        foreach ($files as $f) {
+            if ($f === '.' || $f === '..') {
+                continue;
+            }
+
+            if (str_starts_with($f, 'global-')) {
+                return 'build/assets/' . $f;
+            }
+        }
+
+        return null;
     }
 }
