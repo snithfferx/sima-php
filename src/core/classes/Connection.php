@@ -2,29 +2,29 @@
 /**
  * Connection Class to consume the server local database
  * @description This class is the base class for all database connections
- * @author Jorge Echeverria <jecheverria@bytes4run.com> 
- * @category Class 
+ * @author Jorge Echeverria <jecheverria@bytes4run.com>
+ * @category Class
  * @package CLASSES\Connection
- * @version 1.7.0 
+ * @version 1.7.0
  * @date 2024-03-11 | 2025-07-29
  * @time 22:30:00
- * @copyright (c) 2024 - 2025 Bytes4Run 
+ * @copyright (c) 2024 - 2025 Bytes4Run
  */
-declare(strict_types=1);
+declare (strict_types = 1);
 
 namespace SIMA\CLASSES;
 
-use PDO;
 use Exception;
+use PDO;
 use PDOException;
 
 class Connection
 {
-    private string $host = "localhost";
-    private string $db_name = "sima";
+    private string $host     = "localhost";
+    private string $db_name  = "sima";
     private string $username = "root";
     private string $password = "";
-    private string $charset = "utf8mb4";
+    private string $charset  = "utf8mb4";
 
     private string $dsn;
     private array $options;
@@ -34,18 +34,22 @@ class Connection
 
     public function __construct(string | null $dbName = null)
     {
-        $this->host = $_ENV['DB_HOST'] ?? 'localhost';
-        $this->db_name = $dbName ?? $_ENV['DB_DATABASE'] ?? 'sima';
-        $this->username = $_ENV['DB_USERNAME'] ?? 'root';
-        $this->password = $_ENV['DB_PASSWORD'] ?? '';
+        $this->host = $_ENV['MYSQL_DB_HOST'] ?? 'localhost';
+        $this->db_name = $dbName ?? $_ENV['MYSQL_DB_NAME'] ?? 'sima';
+        $this->username = $_ENV['MYSQL_DB_USER'] ?? 'root';
+        $this->password = $_ENV['MYSQL_DB_PASS'] ?? '';
         $this->charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
 
         try {
-            $this->dsn = "mysql:host={$this->host};dbname={$this->db_name};charset={$this->charset}";
+            $this->dsn     = "mysql:host={$this->host};dbname={$this->db_name};charset={$this->charset}";
+			// echo "<pre>";
+			// print_r($_ENV);
+			// echo "</pre>";exit;
+
             $this->options = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
-                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_EMULATE_PREPARES   => false,
             ];
             $this->pdo = new PDO($this->dsn, $this->username, $this->password, $this->options);
         } catch (PDOException $e) {
@@ -68,15 +72,15 @@ class Connection
         return $this->response;
     }
 
-    public function query(string $strStatement, array $arrParams = []): array
+    public function query(string $strStatement, array $arrParams = []): Connection
     {
         $this->getDbData($strStatement, $arrParams);
-        return $this->response;
+        return $this;
     }
 
     private function getDbData(string $strStatement, array $arrParams = []): void
     {
-        if (!$this->pdo) {
+        if (! $this->pdo) {
             try {
                 $this->pdo = new PDO($this->dsn, $this->username, $this->password, $this->options);
             } catch (PDOException $e) {
