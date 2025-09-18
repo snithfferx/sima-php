@@ -19,26 +19,42 @@ use SIMA\CLASSES\Connection;
 class Model
 {
     private Connection $connection;
-    private string $tableName;
-    private array $fields;
-    private string $joins;
-    private array $conditions;
-    private string $separator;
-    private string $sorting;
-    private string $orderby;
-    private string $groupby;
-    private string $operator;
-    private string $query;
-    private array $values;
+    private string|null $tableName;
+    private string|null $fields;
+    private string|null $joins;
+    private array|null $conditions;
+    private string|null $separator;
+    private string|null $sorting;
+    private string|null $orderby;
+    private string|null $groupby;
+    private string|null $operator;
+    private string|null $query;
+    private array|null $values;
     private array|null $response;
-    private array $error;
+    private array|null $error;
 
-    private int $limit;
-    private int $offset;
-    private string $queryType;
+    private int|null $limit;
+    private int |null$offset;
+    private string|null $queryType;
     public function __construct()
     {
         $this->connection = new Connection();
+		$this->conditions  = null;
+		$this->error       = null;
+		$this->response    = null;
+		$this->fields      = null;
+		$this->joins       = null;
+		$this->tableName   = null;
+		$this->separator   = null;
+		$this->sorting     = null;
+		$this->orderby     = null;
+		$this->groupby     = null;
+		$this->operator    = null;
+		$this->query       = '';
+		$this->values      = [];
+		$this->limit       = null;
+		$this->offset      = null;
+		$this->queryType   = null;
     }
     /**
      * Recieve the list of fields to retrieve from table
@@ -46,11 +62,11 @@ class Model
      * @return Model
      */
     public function select(
-        array | string $query = ['*'], // fields to retrieve from table
+        array | string $query = '*', // fields to retrieve from table
     ): Model {
         $this->setFields($query);
         $this->queryType = 'select';
-        $this->executeQuery();
+        // $this->executeQuery();
         return $this;
     }
 
@@ -208,10 +224,12 @@ class Model
      */
     protected function where(string | array $condition): Model
     {
-        if (is_array($condition)) {
+        if (is_array($condition) && isset($condition[0]['condition'])) {
             $this->conditions = $this->getConditions($condition);
         } else {
-            $this->conditions = $this->getConditions(explode(',', $condition));
+            is_string($condition) 
+			? $this->conditions = $this->buildConditions(explode(',', $condition))
+			: $this->conditions = $this->buildConditions($condition);
         }
         return $this;
     }
@@ -494,6 +512,8 @@ class Model
                 }
             }
         }
+		$this->query .= ';';
+		// Execute the query
         $response = $this->connection->query($this->query, $this->values)->getResponse();
         if ($response !== null) {
             $this->response = $this->interpretateResponse($this->queryType, $response);
@@ -508,27 +528,74 @@ class Model
 
     private function setFields(string | array $fields): Model
     {
-        $this->fields = $fields;
-        if (is_string($this->fields)) {
-            if ($this->fields == "all" || $this->fields == "*") {
-                $this->query .= "*";
+        // $this->fields = $fields;
+        if (is_string($fields)) {
+            if ($fields == "all" || $fields == "*") {
+                $this->fields .= "*";
             } else {
-                $this->query .= $this->fields;
-            }
+				$fieldList = explode(",",$fields); // Split the string by commas to get individual fields example: "table1.field1,table2.field2 = alias2,table3.*"
+				foreach ($fieldList as $ndx => $field) {
+					// Now process each field
+					$parts = explode(".", trim($field)); // Split by dot to separate table and field
+					if (count($parts) == 2) {
+						$table = $parts[0];
+						$field = $parts[1];
+						// Check if the field contains an alias using '='
+						$asignado = explode("=", $field);
+						if (count($asignado) > 1) {
+							$this->fields .= "`$table`.`$asignado[0]` AS '$asignado[1]'";
+						} else {
+							$this->fields .= "`$table`.`$field`";
+						}
+						if ($ndx < (count($fieldList) - 1)) {
+							$this->fields .= ", ";
+						}
+					} else {
+						$table = $this->tableName; // Default to the main table if no table specified
+						$field = $parts[0];
+						$this->fields .= "`$table`.`$field`";
+						if ($ndx < (count($fieldList) - 1)) {
+							$this->fields .= ", ";
+						}
+					}
+            	}
+			}
         } else {
-            if (is_array($this->fields)) {
-                foreach ($this->fields as $table => $fields) {
-                    if (!empty($fields)) {
-                        foreach ($fields as $x => $field) {
-                            $asignado = explode("=", $field);
-                            $this->query .= (count($asignado) > 1) ? "`$table`.`$asignado[0]` AS '$asignado[1]'" : "`$table`.`$field`";
-                            if ($x < (count($fields) - 1)) {
-                                $this->query .= ", ";
-                            }
-                        }
-                        unset($field, $x);
+            if (is_array($fields)) {
+                foreach ($fields as $ndx => $field) {
+                    if (!empty($field)) {
+						$parts = explode(".", $field);
+						if (count($parts) == 2) {
+							$table = $parts[0];
+							$field = $parts[1];
+							// Check if the field contains an alias using '='
+							$asigned = explode("=", $field);
+							if (count($asigned) > 1) {
+								$this->fields .= "`$table`.`$asigned[0]` AS '$asigned[1]'";
+							} else {
+								$this->fields .= "`$table`.`$field`";
+							}
+							if ($ndx < (count($fields) - 1)) {
+								$this->fields .= ", ";
+							}
+						} else {
+							$table = $this->tableName; // Default to the main table if no table specified
+							$field = $parts[0];
+							$this->fields .= "`$table`.`$field`";
+							if ($ndx < (count($fields) - 1)) {
+								$this->fields .= ", ";
+							}
+						}
+                        // foreach ($ as $x => $field) {
+                        //     $asignado = explode("=", $field);
+                        //     $this->fields .= (count($asignado) > 1) ? "`$table`.`$asignado[0]` AS '$asignado[1]'" : "`$table`.`$field`";
+                        //     if ($x < (count($fields) - 1)) {
+                        //         $this->fields .= ", ";
+                        //     }
+                        // }
+                        // unset($field, $x);
                     } else {
-                        $this->query .= "`$table`.*";
+                        $this->fields .= "`$this->tableName`.*";
                     }
                 }
                 unset($table, $fields);
@@ -549,54 +616,55 @@ class Model
         $string = "";
         $values = [];
         if (isset($conditions['condition']) && !empty($conditions['condition'])) {
-            foreach ($conditions['condition'] as $indice => $cond) {
-                if ($indice > 0) {
-                    $separador = ($conditions['separator'][($indice - 1)]) ?? null;
-                    if (isset($separador) && !is_null($separador)) {
-                        match ($separador) {
-                            "Y" => $string .= " AND ",
-                            "O" => $string .= " OR ",
-                        };
-                    }
-                }
-                $string .= '`' . $cond['table'] . '`.`' . $cond['field'] . '`';
-                match ($cond['type']) {
-                    'COMPARATIVE' => $string .= ' = ? ',
-                    'SIMILAR' => $string .= " LIKE CONCAT('%', ?, '%') ",
-                    'START_WITH' => $string .= " LIKE CONCAT(?, '%') ",
-                    'END_WITH' => $string .= " LIKE CONCAT('%', ?) ",
-                    'RANGE' => $string .= ' BETWEEN ? AND ? ',
-                    'NEGATIVE' => $string .= ' != ? ',
-                    'LESS_THAN' => $string .= ' < ? ',
-                    'MORE_THAN' => $string .= ' > ? ',
-                    'LESS_EQ_TO' => $string .= ' <= ? ',
-                    'MORE_EQ_TO' => $string .= ' >= ? ',
-                    'NOT_IN' => $string .= function ($cond) use ($string) {
-                        $string .= ' NOT IN (';
-                        for ($ind = 0; $ind < count($cond['value']); $ind++) {
-                            $string .= (($ind + 1) < count($cond['value'])) ? '?,' : '?';
-                        }
-                        $string .= ')';
-                        return $string;
-                    },
-                    'IS_IN' => $string .= function ($cond) use ($string) {
-                        $string .= ' IN (';
-                        for ($ind = 0; $ind < count($cond['value']); $ind++) {
-                            $string .= (($ind + 1) < count($cond['value'])) ? '?,' : '?';
-                        }
-                        $string .= ')';
-                        return $string;
-                    },
-                };
-                if ($cond['type'] != 'RANGE' && $cond['type'] != 'NOT_IN') {
-                    array_push($values, $cond['value']);
-                } else {
-                    foreach ($cond['value'] as $item) {
-                        array_push($values, $item);
-                    }
-                }
-            }
-        }
+			$conditionList = $conditions['condition'];
+			foreach ($conditionList as $indice => $cond) {
+				if ($indice > 0) {
+					$separador = ($conditions['separator'][($indice - 1)]) ?? null;
+					if (isset($separador) && !is_null($separador)) {
+						match ($separador) {
+							"Y" => $string .= " AND ",
+							"O" => $string .= " OR ",
+						};
+					}
+				}
+				$string .= '`' . $cond['table'] . '`.`' . $cond['field'] . '`';
+				match ($cond['type']) {
+					'COMPARATIVE' => $string .= ' = ? ',
+					'SIMILAR' => $string .= " LIKE CONCAT('%', ?, '%') ",
+					'START_WITH' => $string .= " LIKE CONCAT(?, '%') ",
+					'END_WITH' => $string .= " LIKE CONCAT('%', ?) ",
+					'RANGE' => $string .= ' BETWEEN ? AND ? ',
+					'NEGATIVE' => $string .= ' != ? ',
+					'LESS_THAN' => $string .= ' < ? ',
+					'MORE_THAN' => $string .= ' > ? ',
+					'LESS_EQ_TO' => $string .= ' <= ? ',
+					'MORE_EQ_TO' => $string .= ' >= ? ',
+					'NOT_IN' => $string .= function ($cond) use ($string) {
+						$string .= ' NOT IN (';
+						for ($ind = 0; $ind < count($cond['value']); $ind++) {
+							$string .= (($ind + 1) < count($cond['value'])) ? '?,' : '?';
+						}
+						$string .= ')';
+						return $string;
+					},
+					'IS_IN' => $string .= function ($cond) use ($string) {
+						$string .= ' IN (';
+						for ($ind = 0; $ind < count($cond['value']); $ind++) {
+							$string .= (($ind + 1) < count($cond['value'])) ? '?,' : '?';
+						}
+						$string .= ')';
+						return $string;
+					},
+				};
+				if ($cond['type'] != 'RANGE' && $cond['type'] != 'NOT_IN') {
+					array_push($values, $cond['value']);
+				} else {
+					foreach ($cond['value'] as $item) {
+						array_push($values, $item);
+					}
+				}
+			}
+		}
         return ['string' => $string, 'values' => $values];
     }
     /**
@@ -676,4 +744,110 @@ class Model
             'values' => $vals,
         ];
     }
+
+	private function buildConditions(array $conditions): array
+	{
+		$conditionList = [];
+		foreach ($conditions as $cond) {
+			$parts = explode(" ", trim($cond));
+			if (count($parts) >= 3) {
+				// Extract table and field
+				$tableField = explode(".", $parts[0]);
+				if (count($tableField) == 2) {
+					$table = $tableField[0];
+					$field = $tableField[1];
+				} else {
+					$table = $this->tableName; // Default to main table if no table specified
+					$field = $tableField[0];
+				}
+				// Extract operator
+				$operator = $parts[1];
+				// Extract value (handle cases where value might contain spaces)
+				$value = implode(" ", array_slice($parts, 2));
+				// Determine condition type based on operator
+				switch (strtoupper($operator)) {
+					case "=":
+					case "EQ":
+					case "EQUAL":
+						$type = 'COMPARATIVE';
+						break;
+					case "!=":
+					case "<>":
+					case "NEQ":
+					case "NOT":
+					case "NOTEQ":
+					case "DISTINT":
+					case "DIFERENT":
+						$type = 'NEGATIVE';
+						break;
+					case "<":
+					case "LT":
+					case "LESSTHAN":
+						$type = 'LESS_THAN';
+						break;
+					case ">":
+					case "MT":
+					case "MORETHAN":
+						$type = 'MORE_THAN';
+						break;
+					case "<=":
+					case "LTE":
+					case "LESSTHANEQ":
+						$type = 'LESS_EQ_TO';
+						break;
+					case ">=":
+					case "MTE":
+					case "MORETHANEQ":
+						$type = 'MORE_EQ_TO';
+						break;
+					case "*.*":
+					case "BTW":
+					case "BETWEEN":
+						$type = 'RANGE';
+						$valueParts = explode(" AND ", $value);
+						if (count($valueParts) == 2) {
+							$value = [trim($valueParts[0]), trim($valueParts[1])];
+						} else {
+							throw new \Exception("Invalid range condition");
+						}
+						break;
+					case "*.":
+					case "SW":
+					case "STARTWITH":
+						$type = 'START_WITH';
+						break;
+					case ".*":
+					case "EW":
+					case "ENDWITH":
+						$type = 'END_WITH';
+						break;
+					case "IN":
+					case "ISIN":
+						$type = 'IS_IN';
+						$value = array_map('trim', explode(",", $value));
+						break;
+					case "NOTIN":
+					case "NOTIN":
+						$type = 'NOT_IN';
+						$value = array_map('trim', explode(",", $value));
+						break;
+					case "LIKE":
+					case "SIMILAR":
+						$type = 'SIMILAR';
+						break;
+					default:
+						$type = 'COMPARATIVE';
+						break; // Skip unknown operator
+				}
+				// Add condition to list
+				$conditionList[] = [
+					'table' => $table,
+					'field' => $field,
+					'type' => $type,
+					'value' => $value,
+				];
+			}
+		}
+		return $this->getConditions(['condition' => $conditionList, 'separator' => array_fill(0, count($conditionList) - 1, 'Y')]);
+	}
 }
