@@ -47,6 +47,7 @@ class Router
                             array_push($valid, $value);
                         }
                     }
+					unset($value);
                     $this->callback['request'][0] = $valid;
                 }
                 $this->params = $this->createParams($path[1]);
@@ -204,7 +205,7 @@ class Router
         }
         $count = 0;
         $count = $this->isQuery
-        ? count($this->callback['origin'][0])
+        ? count($this->callback['request'][0])
         : count($this->callback['origin']);
         /* GET
         http://modular.test/products?details=23(module/parameter)
@@ -261,7 +262,7 @@ class Router
                 if ($this->isQuery) {
                     $this->callback['resolved'] = ($count == 0 || $count == 1)
                     ? $this->getDefaults([$this->callback['origin'][0]], 'get')
-                    : $this->getDefaults($this->callback['origin'], 'get');
+                    : $this->getDefaults($this->callback['request'][0], 'get');
                 } else {
                     $this->callback['resolved'] = $this->getDefaults($this->callback['origin'], 'get');
                 }
