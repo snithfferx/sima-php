@@ -47,7 +47,6 @@ class Controller
     public function getModuleResponse(string $module, string $controller, string $method, array | null $params)
     {
         $component = $this->getComponent($module, $controller);
-
         if ($component instanceof Exception) {
             $this->response = ['code' => $component->getCode(), 'message' => $component->getMessage(), 'data' => null];
             return $this;
@@ -88,7 +87,7 @@ class Controller
     private function getComponent(string $name, string $type = "controller"): object
     {
         $splitName = explode("/", $name);
-        if (sizeof($splitName) > 1) {
+        if (sizeof($splitName) > 2) {
             $moduleName = $splitName[0];
             $componentName = $splitName[1];
         } else {
