@@ -35,11 +35,11 @@ class UsersController extends Controller
     {
         $this->model = new UserModel;
     }
-    public function readOne(int $id)
+    public function readOne(array $data)
     {
-        $this->model->getUser($id);
+        $this->model->getUser(intval($data['id']));
     }
-    public function readAll()
+    public function read()
     {
         $this->model->getAll();
     }
@@ -51,7 +51,7 @@ class UsersController extends Controller
     {
         $this->model->getByUsername($username);
     }
-    public function readByTerms(string $terms, int $page = 1, int $limit = 10, string $order = 'asc', string $orderby = 'id')
+    public function search(string $terms, int $page = 1, int $limit = 10, string $order = 'asc', string $orderby = 'id')
     {
         $this->model->getAll($terms, $page, $limit, $order, $orderby);
     }
