@@ -61,9 +61,20 @@ class Response
     function json()
     {
         header('Content-Type: application/json'); //Especificamos el tipo de contenido a devolver
-        http_response_code($this->getStatus());
-
-        return json_encode($this->getData(), JSON_THROW_ON_ERROR); //Devolvemos el contenido
+		$status = $this->getStatus();
+		if (is_string($status) && is_numeric($status)) {
+			$status = intval($status);
+		}
+		if (is_int($status) && $status < 100 || $status > 599) {
+			$status = 500;
+		}
+        http_response_code($status);
+		$data = $this->getData();
+		if (!is_array($data)) {
+			$data = [];
+		}
+		array_push($data, $this->getMessage());
+        return json_encode($data, JSON_THROW_ON_ERROR); //Devolvemos el contenido
     }
 
     function get()
