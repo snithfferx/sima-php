@@ -37,7 +37,7 @@ class Configs
                 if (!empty($file) && $file !== "default") {
                     $dotenv = Dotenv::createImmutable(_CONF_, $file . ".env");
                 } else {
-                    $dotenv = Dotenv::createImmutable(_CONF_);
+                    $dotenv = Dotenv::createImmutable(dirname(_APP_));
                 }
                 $dotenv->safeLoad();
             }
