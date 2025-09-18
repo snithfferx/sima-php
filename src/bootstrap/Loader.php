@@ -15,11 +15,12 @@ namespace SIMA\bootstrap;
 
 use SIMA\CLASSES\Controller;
 use SIMA\HANDLERS\Router;
+use SIMA\HELPERS\Configs;
 use SIMA\HELPERS\Definer;
 use SIMA\HELPERS\Messenger;
+use SIMA\HELPERS\ViewBuilder;
 use SIMA\TYPES\Error;
 use SIMA\TYPES\Response;
-use SIMA\HELPERS\ViewBuilder;
 
 class Loader
 {
@@ -30,17 +31,18 @@ class Loader
     private array|null $callback;
     private array|null $params;
     private Controller $controller;
-	private ViewBuilder $viewBuilder;
+    private ViewBuilder $viewBuilder;
 
     public function __construct()
     {
         new Definer();
-        $this->messenger  = new Messenger();
-        $this->controller = new Controller();
-        $this->response   = null;
-        $this->error      = null;
-        $this->router     = new Router();
-		$this->viewBuilder = new ViewBuilder();
+        new Configs(); // Load .env file
+        $this->messenger   = new Messenger();
+        $this->controller  = new Controller();
+        $this->response    = null;
+        $this->error       = null;
+        $this->router      = new Router();
+        $this->viewBuilder = new ViewBuilder();
         // Getting request parameters
         $this->router->resolve();
         $this->callback = $this->router->getCallback();
@@ -82,10 +84,14 @@ class Loader
 
     public function render(Response $data): void
     {
-		// echo $data->json();
-		$res = $data->toArray();
-		$this->viewBuilder->render(
-			$res['data']['view'], 
-			$res['data']);
+        $res = $data->toArray();
+        if (isset($res['data']) && isset($res['data']['view'])) {
+            $this->viewBuilder->render(
+                $res['data']['view'],
+                $res['data']
+            );
+        } else {
+            echo $data->json();
+        }
     }
 }
