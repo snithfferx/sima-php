@@ -70,16 +70,24 @@ class Entity implements EntityInterface
     private array $data;
     private string $table;
     private string $base;
+    protected array $relations = [];
+    protected array $loaded = [];
+    protected Model|null $model;
     /**
      * __construct
      * @param object|array|null $data
      * @param string $tableName
      * @param string $dataBase
      */
-    public function __construct($data = null, $tableName = '', $dataBase = '')
+    public function __construct(
+		array|object|null $data = null, 
+		string $tableName = '', 
+		string $dataBase = '', 
+		Model|null $model = null)
     {
         $this->table = $tableName;
         $this->base = $dataBase;
+		$this->model = $model;
         if ($data) {
             $this->data = $data;
             foreach ($data as $key => $value) {
@@ -93,13 +101,18 @@ class Entity implements EntityInterface
      */
     public function __toArray()
     {
-        $array = [];
-        foreach ($this as $key => $value) {
-            if ($key !== "table" && $key !== "base") {
-                $array[$key] = $value;
-            }
+        // $array = [];
+        // foreach ($this as $key => $value) {
+        //     if ($key !== "table" && $key !== "base") {
+        //         $array[$key] = $value;
+        //     }
+        // }
+        // return $array;
+		$result = $this->data;
+        foreach ($this->loaded as $key => $value) {
+            $result[$key] = $value;
         }
-        return $array;
+        return $result;
     }
 
     /**
@@ -118,7 +131,18 @@ class Entity implements EntityInterface
      */
     public function __get($name)
     {
-        return (property_exists($this, $name)) ? $this->$name : null;
+		// Check if it's a direct property
+        if (isset($this->data[$name])) {
+            return $this->data[$name];
+        }
+        
+        // Check if it's a defined relation
+        if (isset($this->relations[$name])) {
+            return $this->loadRelation($name);
+        }
+        
+        return null;
+        // return (property_exists($this, $name)) ? $this->$name : null;
     }
 
     /**
@@ -200,5 +224,49 @@ class Entity implements EntityInterface
     public function getBase()
     {
         return $this->base;
+    }
+
+	/**
+     * Define a relation
+     */
+    protected function defineRelation(string $name, callable $loader): void
+    {
+        $this->relations[$name] = $loader;
+    }
+    
+    /**
+     * Load a relation if not already loaded
+     */
+    protected function loadRelation(string $name): mixed
+    {
+        if (!isset($this->loaded[$name])) {
+            if (isset($this->relations[$name])) {
+                $loader = $this->relations[$name];
+                $this->loaded[$name] = $loader($this->data, $this->model);
+            } else {
+                return null;
+            }
+        }
+        
+        return $this->loaded[$name];
+    }
+    
+    /**
+     * Check if relation is loaded
+     */
+    public function isLoaded(string $relation): bool
+    {
+        return isset($this->loaded[$relation]);
+    }
+    
+    /**
+     * Eager load relations
+     */
+    public function load(array $relations): self
+    {
+        foreach ($relations as $relation) {
+            $this->loadRelation($relation);
+        }
+        return $this;
     }
 }
