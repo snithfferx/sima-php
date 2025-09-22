@@ -102,10 +102,7 @@ class Model
      * @param array $values
      * @return Model
      */
-    public function delete(
-        array $values
-    ): Model {
-        $this->setValues($values);
+    public function delete(): Model {
         $this->queryType = 'delete';
         $this->executeQuery();
         return $this;
@@ -115,7 +112,7 @@ class Model
      * @param string $tableName
      * @return Model
      */
-    public function from(string $tableName)
+    public function from(string $tableName): Model
     {
         $this->tableName = $tableName;
         return $this;
@@ -125,7 +122,7 @@ class Model
 	 * @param string $tableName
 	 * @return Model
 	 */
-	public function into(string $tableName)
+	public function into(string $tableName): Model
 	{
 		$this->tableName = $tableName;
 		return $this;
@@ -280,7 +277,7 @@ class Model
         return $this->response;
     }
 
-    protected function join(array $joins)
+    protected function join(array $joins): Model
     {
         if (!empty($joins)) {
             /* $joins=[
@@ -308,6 +305,7 @@ class Model
                 }
             }
         }
+        return $this;
     }
 
     /**
