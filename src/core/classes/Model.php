@@ -15,6 +15,7 @@ declare (strict_types = 1);
 namespace SIMA\CLASSES;
 
 use SIMA\CLASSES\Connection;
+use SIMA\CLASSES\Cache;
 
 class Model
 {
@@ -36,6 +37,15 @@ class Model
     private int|null $limit;
     private int |null$offset;
     private string|null $queryType;
+	private ?Cache $cache = null;
+	
+    private bool $useCache = false;
+    private int $cacheTTL = 3600;
+    private array $cacheableTables = ['categories', 'brands', 'products']; // Tables that benefit from caching
+
+	protected array $relations = [];
+    protected string $entityClass = Entity::class;
+
     public function __construct()
     {
         $this->connection = new Connection();
@@ -479,6 +489,10 @@ class Model
                 $this->query .= " GROUP BY ";
                 $this->query .= $this->groupby;
             }
+			if (isset($this->having) && $this->having !== null) {
+				$this->query .= " HAVING " . $this->having;
+			}
+
         } elseif ($this->queryType == 'insert') {
             $this->query = "INSERT INTO ";
             $this->query .= $this->tableName;
@@ -718,15 +732,22 @@ class Model
 
     private function interpretateResponse(string $request, array $response): array
     {
-        $result = ['status' => $response['status'], 'message' => $response['message']];
-        $result['data'] = match ($request) {
-            "select" => $response['data']['rows'],
-            "insert" => $response['data']['id'],
-            "update" => $response['data']['affected'],
-            "delete" => $response['data']['affected'],
-            default => $response['data'],
-        };
-        return $result;
+        // $result = ['status' => $response['status'], 'message' => $response['message']];
+        // $result['data'] = match ($request) {
+        //     "select" => $response['data']['rows'],
+        //     "insert" => $response['data']['id'],
+        //     "update" => $response['data']['affected'],
+        //     "delete" => $response['data']['affected'],
+        //     default => $response['data'],
+        // };
+        // return $result;
+		return match ($request) {
+			"select" => $response, // Array directo de resultados
+			"insert" => ['insertId' => $response['insertId'], 'affected' => $response['affectedRows']],
+			"update" => ['affected' => $response['affectedRows']],
+			"delete" => ['affected' => $response['affectedRows']],
+			default => $response,
+		};
     }
 
     private function setValues(array $values): void
@@ -848,4 +869,217 @@ class Model
 		}
 		return $this->getConditions(['condition' => $conditionList, 'separator' => array_fill(0, count($conditionList) - 1, 'Y')]);
 	}
+	/**
+     * Enable caching for this query
+     */
+    public function cache(int $ttl = null, bool $force = false): Model
+    {
+        $this->useCache = true;
+        if ($ttl !== null) {
+            $this->cacheTTL = $ttl;
+        }
+        
+        if ($this->cache === null) {
+            $this->cache = Cache::getInstance();
+        }
+        
+        return $this;
+    }
+    
+    /**
+     * Disable caching for this query
+     */
+    public function noCache(): Model
+    {
+        $this->useCache = false;
+        return $this;
+    }
+    
+    /**
+     * Enhanced executeQuery with cache support
+     */
+    public function executeCachedQuery(null | array $values = null): Model
+    {
+        if ($values !== null) {
+            $this->values = array_merge($this->values ?? [], $values);
+        }
+        
+        $this->buildQuery();
+        
+        // Check cache for SELECT queries
+        if ($this->queryType === 'select' && $this->shouldUseCache()) {
+            $cacheKey = $this->cache->generateKey($this->query, $this->values ?? []);
+            
+            $cachedResponse = $this->cache->get($cacheKey);
+            if ($cachedResponse !== null) {
+                $this->response = $cachedResponse;
+                return $this;
+            }
+        }
+        
+        // Execute the query
+        $response = $this->connection->query($this->query, $this->values ?? [])->getResponse();
+        if ($response !== null) {
+            $this->response = $this->interpretateResponse($this->queryType, $response);
+            
+            // Cache the response for SELECT queries
+            if ($this->queryType === 'select' && $this->shouldUseCache() && $this->response) {
+                $cacheKey = $this->cache->generateKey($this->query, $this->values ?? []);
+                $this->cache->set($cacheKey, $this->response, $this->cacheTTL);
+            }
+            
+            // Invalidate cache for write operations
+            if (in_array($this->queryType, ['insert', 'update', 'delete'])) {
+                $this->invalidateTableCache();
+            }
+        }
+        
+        return $this;
+    }
+    
+    /**
+     * Check if caching should be used
+     */
+    private function shouldUseCache(): bool
+    {
+        if (!$this->useCache) {
+            return false;
+        }
+        
+        // Only cache if table is in cacheable list or cache is explicitly enabled
+        return in_array($this->tableName, $this->cacheableTables) || $this->useCache;
+    }
+    
+    /**
+     * Invalidate cache entries related to current table
+     */
+    private function invalidateTableCache(): void
+    {
+        if ($this->cache && $this->tableName) {
+            $this->cache->invalidateByPattern($this->tableName);
+        }
+    }
+    
+    /**
+     * Manual cache invalidation
+     */
+    public function clearCache(string $pattern = null): int
+    {
+        if (!$this->cache) {
+            $this->cache = Cache::getInstance();
+        }
+        
+        if ($pattern) {
+            return $this->cache->invalidateByPattern($pattern);
+        } else {
+            $this->cache->clear();
+            return 0;
+        }
+    }
+	/**
+     * Define a hasMany relationship
+     */
+    protected function hasMany(string $relatedModel, string $foreignKey, string $localKey = 'id'): callable
+    {
+        return function($data, $model) use ($relatedModel, $foreignKey, $localKey) {
+            $relatedModelInstance = new $relatedModel();
+            return $relatedModelInstance
+                ->select('*')
+                ->from($relatedModelInstance->getTable())
+                ->where(["{$relatedModelInstance->getTable()}.{$foreignKey} = {$data[$localKey]}"])
+                ->get();
+        };
+    }
+    
+    /**
+     * Define a belongsTo relationship
+     */
+    protected function belongsTo(string $relatedModel, string $foreignKey, string $ownerKey = 'id'): callable
+    {
+        return function($data, $model) use ($relatedModel, $foreignKey, $ownerKey) {
+            if (!isset($data[$foreignKey]) || $data[$foreignKey] === null) {
+                return null;
+            }
+            
+            $relatedModelInstance = new $relatedModel();
+            $result = $relatedModelInstance
+                ->select('*')
+                ->from($relatedModelInstance->getTable())
+                ->where(["{$relatedModelInstance->getTable()}.{$ownerKey} = {$data[$foreignKey]}"])
+                ->get();
+                
+            return $result[0] ?? null;
+        };
+    }
+    
+    /**
+     * Define a belongsToMany relationship
+     */
+    protected function belongsToMany(string $relatedModel, string $pivotTable, string $foreignKey, string $relatedKey): callable
+    {
+        return function($data, $model) use ($relatedModel, $pivotTable, $foreignKey, $relatedKey) {
+            $relatedModelInstance = new $relatedModel();
+            return $relatedModelInstance
+                ->select($relatedModelInstance->getTable() . '.*')
+                ->from($relatedModelInstance->getTable())
+                ->join($pivotTable, $relatedModelInstance->getTable() . '.id', '=', $pivotTable . '.' . $relatedKey)
+                ->where(["{$pivotTable}.{$foreignKey} = {$data['id']}"])
+                ->get();
+        };
+    }
+    
+    /**
+     * Return results as entities with lazy loading
+     */
+    public function getEntities(): array
+    {
+        $results = $this->get();
+        $entities = [];
+        
+        foreach ($results as $row) {
+            $entity = new $this->entityClass($row, $this);
+            
+            // Define relations for the entity
+            foreach ($this->relations as $name => $loader) {
+                $entity->defineRelation($name, $loader);
+            }
+            
+            $entities[] = $entity;
+        }
+        
+        return $entities;
+    }
+    
+    /**
+     * Return single entity
+     */
+    public function getEntity(): ?Entity
+    {
+        $results = $this->getEntities();
+        return $results[0] ?? null;
+    }
+    
+    /**
+     * Get table name (to be overridden in child models)
+     */
+    protected function getTable(): string
+    {
+        return $this->tableName ?? '';
+    }
+	/**
+     * Define relations for the model
+     */
+    protected function defineRelations(): void
+    {
+        // To be implemented in child models
+    }
+    
+    /**
+     * Eager load relations
+     */
+    public function with(array $relations): Model
+    {
+        $this->eagerLoad = $relations;
+        return $this;
+    }
 }

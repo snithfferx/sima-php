@@ -20,11 +20,12 @@ use PDOException;
 
 class Connection
 {
-    private string $host     = "localhost";
-    private string $db_name  = "sima";
-    private string $username = "root";
-    private string $password = "";
-    private string $charset  = "utf8mb4";
+    private string $host        = "localhost";
+    private string $db_name     = "sima";
+    private string $username    = "root";
+    private string $password    = "";
+    private string $charset     = "utf8mb4";
+    private bool $inTransaction = false;
 
     private string $dsn;
     private array $options;
@@ -34,17 +35,17 @@ class Connection
 
     public function __construct(string | null $dbName = null)
     {
-        $this->host = $_ENV['MYSQL_DB_HOST'] ?? 'localhost';
-        $this->db_name = $dbName ?? $_ENV['MYSQL_DB_NAME'] ?? 'sima';
+        $this->host     = $_ENV['MYSQL_DB_HOST'] ?? 'localhost';
+        $this->db_name  = $dbName ?? $_ENV['MYSQL_DB_NAME'] ?? 'sima';
         $this->username = $_ENV['MYSQL_DB_USER'] ?? 'root';
         $this->password = $_ENV['MYSQL_DB_PASS'] ?? '';
-        $this->charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
+        $this->charset  = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
 
         try {
-            $this->dsn     = "mysql:host={$this->host};dbname={$this->db_name};charset={$this->charset}";
-			// echo "<pre>";
-			// print_r($_ENV);
-			// echo "</pre>";exit;
+            $this->dsn = "mysql:host={$this->host};dbname={$this->db_name};charset={$this->charset}";
+            // echo "<pre>";
+            // print_r($_ENV);
+            // echo "</pre>";exit;
 
             $this->options = [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -98,6 +99,84 @@ class Connection
             }
         } catch (Exception $e) {
             throw new Exception("Query failed: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Begin a database transaction
+     */
+    public function beginTransaction(): bool
+    {
+        if ($this->inTransaction) {
+            throw new Exception("Transaction already started");
+        }
+
+        try {
+            $result              = $this->pdo->beginTransaction();
+            $this->inTransaction = true;
+            return $result;
+        } catch (PDOException $e) {
+            throw new Exception("Failed to begin transaction: " . $e->getMessage());
+        }
+
+    }
+    /**
+     * Commit thecurrenttransaction
+     */
+    public function commit(): bool
+    {
+        if (! $this->inTransaction) {
+            throw new Exception("No active transaction to commit");
+        }
+
+        try {
+            $result              = $this->pdo->commit();
+            $this->inTransaction = false;
+            return $result;
+        } catch (PDOException $e) {
+            throw new Exception("Failed to commit transaction: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Rollback the current transaction
+     */
+    public function rollback(): bool
+    {
+        if (! $this->inTransaction) {
+            throw new Exception("No active transaction to rollback");
+        }
+
+        try {
+            $result              = $this->pdo->rollback();
+            $this->inTransaction = false;
+            return $result;
+        } catch (PDOException $e) {
+            throw new Exception("Failed to rollback transaction: " . $e->getMessage());
+        }
+    }
+    /**
+     * Check if currently in transaction
+     */
+    public function inTransaction(): bool
+    {
+        return $this->inTransaction;
+    }
+
+    /**
+     * Execute a callback within a transaction
+     */
+    public function transaction(callable $callback): mixed
+    {
+        $this->beginTransaction();
+
+        try {
+            $result = $callback($this);
+            $this->commit();
+            return $result;
+        } catch (Exception $e) {
+            $this->rollback();
+            throw $e;
         }
     }
 }
